@@ -61,7 +61,27 @@
   t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
   document,'script','https://connect.facebook.net/en_US/fbevents.js');
   fbq('init', 'YOUR_META_PIXEL_ID'); // ← your Meta Pixel numeric ID
-  fbq('track', 'PageView');
+
+  // PageView — dual fire (pixel + CAPI) with shared event_id for dedup.
+  // /tracker skips event_log inserts for PageView, so D1 stays lean; only
+  // the Meta CAPI call happens server-side. GA4 is pixel-only for PageView.
+  (function () {
+    var pvEventId = (crypto.randomUUID && crypto.randomUUID()) ||
+      (Date.now() + '-' + Math.random().toString(36).slice(2));
+    fbq('track', 'PageView', {}, { eventID: pvEventId });
+    fetch('/tracker', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
+      body: JSON.stringify({
+        event_name: 'PageView',
+        event_id: pvEventId,
+        event_time: Math.floor(Date.now() / 1000),
+        event_source_url: window.location.href,
+        user_data: {},
+      }),
+    }).catch(function () {});
+  })();
 </script>
 </head>
 
