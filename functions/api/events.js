@@ -53,7 +53,7 @@ export async function onRequestGet(context) {
         SUM(CASE WHEN meta_response_ok = 0 THEN 1 ELSE 0 END) as meta_fail,
         SUM(CASE WHEN is_bot = 1 THEN 1 ELSE 0 END) as bots
       FROM event_log
-      WHERE event_name IN ('Lead', 'GestorAtuante')
+      WHERE event_name = 'Lead'
       GROUP BY event_name
     `).all();
 
@@ -71,7 +71,7 @@ export async function onRequestGet(context) {
         SUM(CASE WHEN fbc_source = 'middleware_http' AND is_bot = 0 THEN 1 ELSE 0 END) as fbc_from_middleware,
         SUM(CASE WHEN fbclid_source = 'server_middleware' AND is_bot = 0 THEN 1 ELSE 0 END) as fbclid_from_server
       FROM event_log
-      WHERE event_name IN ('Lead', 'GestorAtuante')
+      WHERE event_name = 'Lead'
     `).first();
 
     // Per-browser breakdown for ITP insight
@@ -82,7 +82,7 @@ export async function onRequestGet(context) {
         SUM(CASE WHEN pixel_was_blocked = 1 THEN 1 ELSE 0 END) as blocked,
         SUM(CASE WHEN fbp_source = 'middleware_http' THEN 1 ELSE 0 END) as itp_recovered
       FROM event_log
-      WHERE event_name IN ('Lead', 'GestorAtuante') AND is_bot = 0
+      WHERE event_name = 'Lead' AND is_bot = 0
       GROUP BY browser
       ORDER BY total DESC
     `).all();

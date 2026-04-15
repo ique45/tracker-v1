@@ -44,9 +44,12 @@ export async function onRequest(context) {
   if (!externalId) externalId = crypto.randomUUID();
 
   // --- Compute sub_domain_index per Meta SDK spec ---
-  // sub_domain_index = etld_plus_1.split('.').length - 1
-  // gustavobork.com.br → 3 parts → index 2
-  const SUB_DOMAIN_INDEX = 2;
+  // Index = number of labels in the ETLD+1 minus 1.
+  //   example.com     → 2 → index 1
+  //   example.com.br  → 3 → index 2  (country-code second-level domain)
+  // Computed from the Host header so the same code works for every recipient
+  // without configuration. Falls back to 1 if the host can't be parsed.
+  const SUB_DOMAIN_INDEX = computeSubDomainIndex(request.headers.get('host') || '');
 
   // --- Build _fbc from fbclid ---
   let fbc = existingFbc;
@@ -139,4 +142,27 @@ function extractFbcPayload(fbc) {
   if (!fbc) return '';
   const parts = fbc.split('.');
   return parts.length >= 4 ? parts[3] : '';
+}
+
+// Country-code second-level domains where the ETLD+1 has three labels.
+// A full public-suffix list is too heavy for an edge worker; this covers
+// the common cases. Anything not listed defaults to the 2-label assumption
+// (example.com → index 1), which is correct for .com / .net / .org / etc.
+const CC_TLDS = new Set([
+  'com.br', 'com.ar', 'com.mx', 'com.co', 'com.pe', 'com.ve', 'com.ec',
+  'com.au', 'com.pt', 'com.pl', 'com.tr', 'com.ua', 'com.ru',
+  'com.cn', 'com.tw', 'com.hk', 'com.sg', 'com.my', 'com.ph', 'com.vn',
+  'co.uk', 'co.jp', 'co.kr', 'co.nz', 'co.za', 'co.in', 'co.id',
+]);
+
+function computeSubDomainIndex(host) {
+  if (!host) return 1;
+  const hostname = host.split(':')[0].toLowerCase();
+  const parts = hostname.split('.');
+  if (parts.length < 2) return 0;
+  const lastTwo = parts.slice(-2).join('.');
+  // Known country-code 2-label TLD → ETLD+1 has 3 labels → index 2
+  if (CC_TLDS.has(lastTwo)) return 2;
+  // Standard case: example.com → ETLD+1 has 2 labels → index 1
+  return 1;
 }
