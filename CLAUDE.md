@@ -7,114 +7,157 @@
 ## What this repo is
 
 A Cloudflare Pages + D1 tracking stack that captures first-party attribution
-data and fires server-side conversion events to Meta CAPI, GA4, and Google Ads.
-It replaces Stape + GTM Server-Side for creators running paid traffic to lead
-or sales pages. Each recipient deploys their own copy in their own Cloudflare
-account with their own D1 database — there is no shared backend.
+data, fires server-side conversion events to Meta CAPI / GA4 / Google Ads,
+and ships a built-in dashboard that shows revenue, products, UTMs, and
+tracking health. It replaces Stape + GTM Server-Side for creators running
+paid traffic to lead or sales pages.
 
-The stack does two things simultaneously:
+Each recipient deploys their own copy in their own Cloudflare account with
+their own D1 database. There is no shared backend. The template is designed
+to be unpacked into a blank folder and driven from Claude Code.
 
-1. **Fires server-side conversion events** with ITP-resistant identifier capture
-   (400-day first-party cookies, server-set fbp/fbc, GA4 client ID parsing).
-2. **Persists first-party attribution data** (UTMs, fbp/fbc, gclid) per lead
-   and per purchase, so the built-in dashboard shows where each conversion
-   originated.
+**The stack does three things:**
+
+1. **Server-side conversions** with ITP-resistant identifier capture (400-day
+   first-party cookies, edge-set `fbp`/`fbc`, GA4 client ID parsing, event
+   deduplication between browser pixel and server CAPI).
+2. **First-party attribution persistence** — every lead and every purchase
+   stores its UTMs, `fbp`/`fbc`, `gclid`, and originating session, so the
+   dashboard can show where each conversion came from.
+3. **A self-contained dashboard** at `/dash` with six sections: revenue,
+   product sales, paid-traffic attribution with Meta spend/CPA/ROAS, UTM
+   breakdown, recent leads with UTMs, and tracking health (ITP recovery,
+   adblock recovery, bot filters).
+
+## Triage: what to do when a recipient starts a conversation
+
+If the recipient has **just unpacked the template into a blank folder** and
+the repo is otherwise untouched, invoke the `deploy-stack` skill.
+
+If a recipient is asking **"is my tracking working"** or **"why isn't my
+Meta dashboard showing conversions"**, invoke `verify-tracking`.
+
+If they want to **add another lead page or sales page**, invoke `add-page`.
+
+If they say **"I use [sales platform not in Eduzz/Hotmart/Kiwify]"**, invoke
+`add-sales-platform`.
+
+For anything else, ask a clarifying question before reaching for a skill.
 
 ## Identifier chain
 
-Every visit generates identifiers at the edge (middleware), persists them to
-D1, and threads them through the checkout flow so the webhook can enrich the
-purchase with the original attribution.
+Every visit generates identifiers at the edge, persists them to D1, and
+threads them through the checkout flow so the webhook can enrich the
+purchase with its original attribution.
 
 | Identifier | Origin | Storage | Used by |
 |---|---|---|---|
 | `_krob_sid` | Middleware, UUID per visit | 400d cookie + `sessions` row | Joins every event to its originating visit |
 | `fbp` | Middleware, Meta spec `fb.2.{ts}.{rand}` | Cookie + `sessions.fbp` | Meta CAPI |
-| `fbc` | Middleware, from `fbclid` URL param | Cookie + `sessions.fbc` | Meta CAPI |
+| `fbc` | Middleware, derived from `fbclid` URL param | Cookie + `sessions.fbc` | Meta CAPI |
 | `ga_client_id` | Parsed from GA4's `_ga` cookie at edge | `checkout_sessions.ga_client_id` | GA4 Measurement Protocol |
-| `trk` | Client, generated per sales-page visit | `checkout_sessions.trk` (PK) | Webhook lookup after purchase |
-| `event_id` | Client, UUID per event | `event_log.event_id`, `purchase_log.event_id` | Dedup between browser pixel and server CAPI |
+| `trk` | Sales page JS, UUID per checkout intent | `checkout_sessions.trk` (unique) | Webhook lookup after purchase |
+| `event_id` | Client, UUID per event | `event_log`, `purchase_log` | Dedup between browser pixel and server CAPI |
 | `external_id` | Middleware, UUID per visitor | Cookie + `sessions.external_id` | Meta Advanced Matching |
 
-**The `trk` chain is the critical one for sales pages**: generated on the page
-visit → persisted to `checkout_sessions` with all attribution → passed to the
-sales platform as a custom field (`tracker.code1` for Eduzz, `xcod` for
-Hotmart, `sck` for Kiwify) → returned in the webhook payload → looked up to
-enrich the Meta/GA4/Google Ads conversion.
+**The `trk` chain is the critical one for sales pages**: generated on the
+sales page visit → persisted to `checkout_sessions` with all attribution →
+passed to the sales platform as a custom field (`tracker.code1` for Eduzz,
+`xcod` for Hotmart, `sck` for Kiwify) → returned in the webhook payload →
+looked up to enrich the Meta/GA4/Google Ads conversion.
 
-Hop-by-hop detail with example payloads: `docs/data-flow.md`
+Hop-by-hop debugging bible: `docs/data-flow.md`
 
 ## Hard rules (do not violate)
 
 - **Never log PageView events to `event_log`.** PageView still fires to
-  Meta/GA4 — it just doesn't write to D1. This keeps per-instance write volume
-  sustainable forever. Enforced in `functions/tracker.js`.
-- **Never commit secrets.** `wrangler.toml`, `.dev.vars`, `config/products.json`
-  are all gitignored. Only `*.example` variants are tracked.
+  Meta/GA4 — it just doesn't write to D1. This keeps per-instance D1 write
+  volume sustainable forever. Enforced at `functions/tracker.js:118`.
+- **Never commit secrets.** `wrangler.toml`, `.dev.vars`, `.env*` are all
+  gitignored. Only `wrangler.toml.example` is tracked. Product configuration
+  (`config/products.js`) IS tracked — product IDs and tag IDs are not secrets.
 - **Always use parameterized SQL.** Every D1 query uses `.bind()`. No string
-  interpolation, ever.
-- **Hash PII before sending to ad platforms.** Email, phone, name are SHA-256
-  hashed after lowercase + trim normalization (phone: digits-only + leading
-  zeros stripped). Raw PII persists in D1 for debugging only and never leaves
-  the recipient's own infrastructure.
-- **Per-platform webhook adapter pattern.** Each sales platform gets its own
-  file in `functions/webhook/<platform>.js` that handles payload parsing +
-  signature verification. Shared lookup/enrichment/fan-out logic lives in
+  interpolation of user input, ever.
+- **Hash PII before sending to ad platforms.** Email, phone, name get SHA-256
+  hashed after lowercase-and-trim normalization (phone additionally strips
+  non-digits and leading zeros). Raw PII persists in D1 for debugging only
+  and never leaves the recipient's own infrastructure.
+- **Per-platform webhook adapter pattern.** Each sales platform has its own
+  file at `functions/webhook/<platform>.js` that handles payload parsing
+  plus signature verification. The shared lookup/enrichment/fan-out lives in
   `functions/webhook/_core.js`. When adding a new platform, copy an existing
-  adapter as a structural reference — do not modify `_core.js` unless the
-  change is genuinely platform-agnostic.
+  adapter as a structural reference — do not add platform branching to
+  `_core.js`.
 - **Webhook signatures are mandatory.** Every platform adapter MUST verify
-  the incoming webhook signature before processing. A webhook without a valid
-  signature is rejected with 401 and never hits the database. Missing the
-  verification env var (e.g. `EDUZZ_WEBHOOK_SECRET`) is a deploy-blocking
-  error, not a silent skip.
+  its signature before processing. A webhook without a valid signature
+  returns 401 and never touches the database. Missing the verification env
+  var (e.g. `EDUZZ_WEBHOOK_SECRET`) is a deploy-blocking error, not a
+  silent skip.
+- **Dashboard and sync endpoints have separate secrets.** `DASH_KEY` gates
+  `/dash` and `/api/*` reads. `SYNC_SECRET` gates `/api/sync/*` writes from
+  external cron. Never reuse the same value for both.
 
 ## File map
 
+### Edge runtime (`functions/`)
+
 | Path | Purpose |
 |---|---|
-| `functions/_middleware.js` | Edge middleware: generates `_krob_sid`, captures `fbclid`/`gclid`/UTMs, sets cookies, upserts `sessions` row. Runs on every request. |
-| `functions/tracker.js` | `/tracker` endpoint: receives client events, hashes PII, fires Meta CAPI + GA4 MP, logs to `event_log` (minus PageView). |
-| `functions/checkout-session.js` | `/checkout-session` endpoint: persists `trk` + attribution when a sales-page form is submitted or a checkout button is clicked. |
-| `functions/api/events.js` | Dashboard query: events with UTMs via JOIN on `sessions`. |
-| `functions/api/leads.js` | Dashboard query: leads with UTMs (leads-only view). |
-| `functions/api/purchases.js` | Dashboard query: purchases with attribution and platform delivery status. |
-| `functions/webhook/_core.js` | Shared webhook logic: lookup `trk` → enrich → Meta/GA4/Google Ads fan-out → persist `purchase_log`. |
-| `functions/webhook/eduzz.js` | Eduzz adapter: parses Eduzz payload, verifies `x-signature` HMAC-SHA256. |
-| `functions/webhook/hotmart.js` | Hotmart adapter: parses Hotmart payload, verifies `hottok`. |
-| `functions/webhook/kiwify.js` | Kiwify adapter: parses Kiwify payload, verifies Kiwify signature. |
-| `migrations/` | D1 schema. Apply with `wrangler d1 migrations apply <db-name> --remote`. |
-| `dash/index.html` | Self-contained dashboard reading from `/api/*` endpoints. Auth via `DASH_KEY`. |
-| `examples/lead-form-page/` | Starter HTML for the three lead-form field variants. |
-| `examples/sales-page/` | Starter HTML for a generic sales page with `trk` URL rewriting. |
-| `config/products.json` | Per-product config: product IDs, Encharge tags, ManyChat tag IDs, Google Ads conversion actions. Recipient edits directly. Gitignored. |
-| `docs/` | Deep reference — architecture, data flow, schema, per-page-type recipes, per-platform notes. |
+| `_middleware.js` | Runs on every page request. Generates `_krob_sid`, captures `fbclid`/`gclid`/UTMs, computes `SUB_DOMAIN_INDEX` from the Host header, sets 400-day cookies, upserts `sessions`. Skips `/tracker`, `/webhook/*`, `/api/*`, `/dash`. |
+| `tracker.js` | `POST /tracker` — client events. Hashes PII, fires Meta CAPI + GA4 MP, logs to `event_log` (PageView skipped). |
+| `checkout-session.js` | `POST /checkout-session` — persists `trk` + attribution when a sales-page loads or a checkout button fires. |
+| `scripts/[[path]].js` | First-party proxy for `gtag.js`. Example pages load GA4 via `/scripts/gtag.js?id=...`. |
+| `webhook/_core.js` | Platform-agnostic brain: lookup `trk` → enrich → fan out to Meta/GA4/Google Ads/Encharge/ManyChat → persist `purchase_log` + `purchase_items`. |
+| `webhook/eduzz.js` | Eduzz adapter. Reads raw body, verifies `x-signature` HMAC-SHA256, parses Eduzz shape, delegates to `_core.js`. |
+| `webhook/hotmart.js` | Hotmart adapter. Verifies `hottok`, parses Hotmart shape. |
+| `webhook/kiwify.js` | Kiwify adapter. Verifies Kiwify signature, parses Kiwify shape. |
+| `api/revenue.js` | Dashboard: gross revenue, sales, AOV, daily time series from `purchase_log`. |
+| `api/products.js` | Dashboard: per-product breakdown + time series from `purchase_items`. |
+| `api/utm-breakdown.js` | Dashboard: tabbed UTM drill-down from `purchase_log` with cascading filters. |
+| `api/attribution.js` | Dashboard: meta/google/organic split + Meta CPA/ROAS (joins `ad_spend`). |
+| `api/leads.js` | Dashboard: Lead events joined to `sessions` for originating UTMs. |
+| `api/events.js` | Dashboard: tracking-health stats (ITP recovery, adblock, bot filter, fbp source). |
+| `api/purchases.js` | Dashboard: purchases table with platform delivery status. |
+| `api/sync/meta-ads.js` | `POST /api/sync/meta-ads` — cron-triggered Meta Marketing API pull into `ad_spend`. Gated by `SYNC_SECRET` header. |
+
+### Schema, config, and static (`migrations/`, `config/`, `dash/`, `examples/`)
+
+| Path | Purpose |
+|---|---|
+| `migrations/` | D1 schema, numbered 0001-0014. Applied via `wrangler d1 migrations apply`. Includes `sessions`, `checkout_sessions`, `event_log`, `purchase_log`, `purchase_items`, `ad_spend`, `sync_log`. |
+| `config/products.js` | Per-product integration config: Encharge tag, ManyChat tag ID, Google Ads conversion action. Keyed by `platform → productId`. Tracked in git; no secrets. |
+| `dash/index.html` | Self-contained dashboard. Tailwind + Chart.js via CDN, no build step. Auth via `DASH_KEY` query param. |
+| `examples/lead-form-page/index.html` | Lead form starter (name + phone + email). Demonstrates the full pixel+CAPI dedup pattern. |
+| `examples/sales-page/starter.html` | Sales page starter. Demonstrates `trk` generation, `checkout-session` persistence, platform-switchable checkout URL rewriting. |
+| `docs/` | Reference — architecture, data flow, schema, per-page-type recipes, per-platform notes, ad-spend sync setup. |
 | `.claude/skills/` | Procedural walkthroughs invoked by name when the recipient's request matches. |
 
 ## Skills
 
-Invoke these when the recipient's request matches the trigger.
+Invoke these when the recipient's request matches the trigger. All skills
+live under `.claude/skills/<name>/SKILL.md`.
 
 | Skill | Trigger phrases | What it does |
 |---|---|---|
 | `deploy-stack` | "set this up", "deploy this", "I just downloaded this", "first-time setup" | Phase A bootstrap: creates Pages project, D1 database, applies migrations, collects secrets interactively, deploys. Runs `wrangler` commands directly. |
-| `verify-tracking` | "is my tracking working", "check my tracking", "verify", "test the chain" | Phase B: walks the 6-checkpoint Level 1 integrity chain (cookie → sessions row → checkout URL → webhook arrival → D1 lookup → platform receipt). |
-| `add-page` | "add a lead page", "add a new sales page", "create a landing page" | Copies the matching example from `examples/`, reads the relevant recipe from `docs/page-types/`, wires routing and platform-specific snippets. |
+| `verify-tracking` | "is my tracking working", "check my tracking", "verify the chain" | Phase B: walks the 6-checkpoint Level 1 integrity chain (cookie → sessions row → checkout URL → webhook arrival → D1 lookup → platform receipt). |
+| `add-page` | "add a lead page", "add a sales page", "create a landing page" | Copies the matching starter from `examples/`, reads `docs/page-types/*.md`, wires routing and platform-specific snippets. |
 | `add-sales-platform` | "I use [platform not in Eduzz/Hotmart/Kiwify]" | Creates a new webhook adapter following `docs/platforms/_template.md` by copying an existing adapter as the structural reference. |
 
 ## Deep reference
 
 | For… | Read |
 |---|---|
-| How the pieces fit together (architecture diagram, request flow) | `docs/architecture.md` |
-| Identifier chain hop-by-hop with example payloads (debugging bible) | `docs/data-flow.md` |
-| D1 schema, every column, prose explanation | `docs/schema.md` |
-| Lead form recipe (field variants, PII mapping for Meta) | `docs/page-types/lead-form-page.md` |
-| Sales page recipe (`trk` generation, URL rewriting, webhook config) | `docs/page-types/sales-page.md` |
-| Eduzz-specific notes (custom field, signature header, secret source) | `docs/platforms/eduzz.md` |
+| Architecture overview — how the pieces fit | `docs/architecture.md` |
+| Identifier chain hop-by-hop with example payloads | `docs/data-flow.md` |
+| D1 schema, every table, every column | `docs/schema.md` |
+| Lead form recipe | `docs/page-types/lead-form-page.md` |
+| Sales page recipe | `docs/page-types/sales-page.md` |
+| Eduzz-specific notes | `docs/platforms/eduzz.md` |
 | Hotmart-specific notes | `docs/platforms/hotmart.md` |
 | Kiwify-specific notes | `docs/platforms/kiwify.md` |
-| Shape for adding a new sales platform | `docs/platforms/_template.md` |
+| Adding a new sales platform | `docs/platforms/_template.md` |
+| Setting up Meta Ads spend sync via external cron | `docs/ad-spend-sync.md` |
 
 ## Decisions the recipient must make
 
@@ -122,12 +165,9 @@ These have sensible defaults. Change them only if you know why.
 
 | Decision | Default | How to change |
 |---|---|---|
-| Domain handling | `_middleware.js` derives the ETLD+1 sub-domain index from the `Host` header at runtime | No action — it self-configures |
-| Timezone for Google Ads conversion timestamps | `-03:00` (São Paulo) | Set `TIMEZONE_OFFSET` secret to any ISO offset (`+00:00`, `-05:00`, etc.) |
-| PII retention window | Raw email/name/phone stored indefinitely in `purchase_log` and `event_log` | Run a periodic `DELETE WHERE created_at < ...` via a scheduled worker; not enforced by default |
-| Which sales platforms are active | All three (Eduzz, Hotmart, Kiwify) are built in | Each platform is live once its webhook secret env var is set; missing secret = that endpoint returns 401 |
-| Dashboard auth | Single `DASH_KEY` query param | Rotate by changing the env var; no code change needed |
-
-<!-- TODO: expand this file during Day 7 once skills and docs exist. Current
-     version is the Day 1 skeleton — section structure is locked, content is
-     correct but minimal. -->
+| Domain handling | `_middleware.js` computes the ETLD+1 sub-domain index from the Host header at runtime | No action — it self-configures, including `.com.br`, `.co.uk`, and other two-label TLDs |
+| Timezone for Google Ads conversion timestamps | `-03:00` (São Paulo, DST-free since 2019) | Set `TIMEZONE_OFFSET` secret to any ISO offset (`+00:00`, `-05:00`, etc.) |
+| PII retention window | Raw email/name/phone stored indefinitely | Manual: run a periodic `DELETE` via scheduled worker. Not enforced by default. |
+| Which sales platforms are active | Eduzz / Hotmart / Kiwify all built in | A platform goes live once its webhook secret env var is set; missing secret = 401 |
+| Dashboard auth | Query param `?key=<DASH_KEY>` | Rotate by changing the env var; no code change |
+| Ad-spend sync | Off until recipient configures Meta Ads cron (see `docs/ad-spend-sync.md`) | Set `META_ADS_ACCESS_TOKEN`, `META_ADS_ACCOUNT_ID`, `SYNC_SECRET` and schedule an external cron to hit `/api/sync/meta-ads` hourly |
