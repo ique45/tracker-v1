@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lead Form — Example</title>
+
+<!--
+  ========================================================================
+  Lead-capture example page.
+
+  This is a copy-pasteable starter. Edit the three placeholder values
+  below, drop the file anywhere inside your Cloudflare Pages project,
+  and it will immediately:
+
+    1. Capture visit attribution (fbp/fbc/UTMs/gclid) into D1 via the
+       edge middleware — automatic, no code needed.
+    2. Load GA4 as a first-party script via /scripts/gtag.js.
+    3. Fire a PageView to Meta + GA4 browser-side when this page loads.
+    4. POST a Lead event to /tracker on form submit, which fires Meta
+       CAPI + GA4 Measurement Protocol server-side with the collected
+       email / name / phone hashed per Meta's PII spec.
+    5. Show a thank-you message inline after submit.
+
+  WHAT TO EDIT:
+    - META_PIXEL_ID     → your Meta Pixel numeric ID
+    - GA4_MEASUREMENT_ID → your GA4 Measurement ID (G-XXXXXXXXXX)
+    - The <h1> / offer copy / form labels — make the page yours
+
+  What NOT to change unless you know why:
+    - /tracker endpoint path
+    - event_id generation (crypto.randomUUID)
+    - The PII field names (em/fn/ln/ph) — Meta expects these exact keys
+  ========================================================================
+-->
+
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+</style>
+
+<!-- GA4 (first-party, served via /scripts/gtag.js which proxies googletagmanager) -->
+<script async src="/scripts/gtag.js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX'); // ← your GA4 measurement ID
+</script>
+
+<!-- Meta Pixel -->
+<script>
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+  n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+  document,'script','https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', 'YOUR_META_PIXEL_ID'); // ← your Meta Pixel numeric ID
+  fbq('track', 'PageView');
+</script>
+</head>
+
+<body class="bg-neutral-50 text-neutral-900 min-h-screen">
+
+<main class="max-w-md mx-auto px-5 pt-16 pb-24">
+
+  <div class="mb-8 text-center">
+    <h1 class="text-3xl font-semibold tracking-tight">Get the free guide</h1>
+    <p class="text-neutral-600 mt-2">Enter your details and we'll send it to you right away.</p>
+  </div>
+
+  <form id="lead-form" class="bg-white border border-neutral-200 rounded-xl p-6 space-y-4 shadow-sm">
+    <div>
+      <label for="name" class="block text-sm font-medium text-neutral-700 mb-1">Full name</label>
+      <input type="text" id="name" name="name" required autocomplete="name"
+             class="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+    </div>
+    <div>
+      <label for="email" class="block text-sm font-medium text-neutral-700 mb-1">Email</label>
+      <input type="email" id="email" name="email" required autocomplete="email"
+             class="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+    </div>
+    <div>
+      <label for="phone" class="block text-sm font-medium text-neutral-700 mb-1">Phone</label>
+      <input type="tel" id="phone" name="phone" required autocomplete="tel"
+             class="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+    </div>
+
+    <button type="submit" id="submit-btn"
+            class="w-full bg-neutral-900 hover:bg-neutral-800 text-white font-semibold py-3 rounded-lg text-sm transition disabled:opacity-50 disabled:cursor-not-allowed">
+      Send me the guide
+    </button>
+
+    <p id="form-error" class="text-sm text-red-600 hidden"></p>
+  </form>
+
+  <div id="thank-you" class="hidden bg-white border border-neutral-200 rounded-xl p-8 text-center shadow-sm">
+    <div class="text-2xl mb-2">✓</div>
+    <div class="text-lg font-semibold">Thank you</div>
+    <p class="text-neutral-600 mt-2 text-sm">Check your email in the next few minutes.</p>
+  </div>
+
+</main>
+
+<script>
+(function () {
+  const form = document.getElementById('lead-form');
+  const thankYou = document.getElementById('thank-you');
+  const errorEl = document.getElementById('form-error');
+  const submitBtn = document.getElementById('submit-btn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorEl.classList.add('hidden');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+
+    // Split full name → first / last per Meta Advanced Matching spec.
+    const nameParts = name.split(/\s+/);
+    const fn = nameParts[0] || '';
+    const ln = nameParts.slice(1).join(' ') || '';
+
+    // Every event gets its own ID so the Meta pixel fire (below) and the
+    // server-side CAPI fire (from /tracker) can be deduped by Meta.
+    const eventId = crypto.randomUUID();
+    const eventTime = Math.floor(Date.now() / 1000);
+
+    // Browser-side Meta fire (will be deduped against the server-side fire
+    // when Meta sees the same event_id).
+    try {
+      if (window.fbq) {
+        fbq('track', 'Lead', {}, { eventID: eventId });
+      }
+    } catch (_) {}
+
+    // Server-side fire — this is the authoritative one. /tracker hashes
+    // PII, enriches with captured fbp/fbc/UTMs, and relays to Meta CAPI
+    // + GA4 MP.
+    try {
+      const response = await fetch('/tracker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_name: 'Lead',
+          event_id: eventId,
+          event_time: eventTime,
+          event_source_url: window.location.href,
+          user_data: {
+            em: email,
+            fn: fn,
+            ln: ln,
+            ph: phone,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.error || `server returned ${response.status}`);
+      }
+
+      // Show the thank-you state. Swap this for a redirect if you prefer:
+      //   window.location.href = '/thank-you.html';
+      form.classList.add('hidden');
+      thankYou.classList.remove('hidden');
+    } catch (err) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send me the guide';
+      errorEl.textContent = 'Something went wrong. Please try again.';
+      errorEl.classList.remove('hidden');
+      console.error('Lead submit failed:', err);
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

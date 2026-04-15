@@ -1,1 +1,218 @@
-<!-- TODO: populated per plan at ~/.claude/plans/snoopy-baking-pinwheel.md -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sales Page — Example</title>
+
+<!--
+  ========================================================================
+  Sales-page example with the full attribution chain.
+
+  This page demonstrates how the `trk` identifier threads through a
+  purchase so the webhook can enrich the sale with its original source:
+
+      page visit
+        ↓ (middleware captures fbp/fbc/UTMs/gclid into `sessions`)
+      this page
+        ↓ (generates `trk` UUID, POSTs to /checkout-session with `trk`
+        ↓  plus fallback body fields → D1 `checkout_sessions` row)
+      checkout button click
+        ↓ (appends `trk` to the checkout URL as the sales platform's
+        ↓  custom field — `tracker.code1` for Eduzz, `xcod` for Hotmart,
+        ↓  `sck` for Kiwify)
+      buyer completes payment on the sales platform
+        ↓
+      sales platform webhook
+        ↓ (POSTs to /webhook/<platform> with `trk` echoed in the payload)
+      webhook handler
+        ↓ (looks up `checkout_sessions` by `trk`, enriches the Meta CAPI
+        ↓  + GA4 + Google Ads fire with the original session attribution)
+
+  WHAT TO EDIT:
+    - META_PIXEL_ID     → your Meta Pixel numeric ID
+    - GA4_MEASUREMENT_ID → your GA4 Measurement ID (G-XXXXXXXXXX)
+    - CHECKOUT_URL      → your sales platform's real checkout URL
+    - CHECKOUT_PLATFORM → 'eduzz' | 'hotmart' | 'kiwify' (determines which
+                          URL param carries `trk`)
+    - The <h1> / offer copy / price — make the page yours
+  ========================================================================
+-->
+
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+</style>
+
+<!-- GA4 -->
+<script async src="/scripts/gtag.js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX'); // ← your GA4 measurement ID
+</script>
+
+<!-- Meta Pixel -->
+<script>
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+  n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+  document,'script','https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', 'YOUR_META_PIXEL_ID'); // ← your Meta Pixel numeric ID
+  fbq('track', 'PageView');
+</script>
+</head>
+
+<body class="bg-neutral-50 text-neutral-900 min-h-screen">
+
+<main class="max-w-2xl mx-auto px-5 pt-16 pb-24">
+
+  <div class="text-center mb-10">
+    <div class="inline-block text-xs font-semibold tracking-wider uppercase bg-amber-100 text-amber-900 px-3 py-1 rounded-full mb-4">
+      Limited offer
+    </div>
+    <h1 class="text-4xl font-semibold tracking-tight">Your product title</h1>
+    <p class="text-neutral-600 mt-3 max-w-lg mx-auto">
+      One or two sentences about what the buyer gets and why it's worth it. Keep this tight — people who read this far are already interested.
+    </p>
+  </div>
+
+  <div class="bg-white border border-neutral-200 rounded-xl p-8 shadow-sm text-center">
+    <div class="text-sm text-neutral-500 mb-1">One-time payment</div>
+    <div class="text-5xl font-semibold tracking-tight mb-1 font-mono">R$ 97</div>
+    <div class="text-sm text-neutral-500 mb-6">Instant access</div>
+
+    <button id="checkout-btn"
+            class="w-full bg-neutral-900 hover:bg-neutral-800 text-white font-semibold py-4 rounded-lg text-base transition">
+      Get instant access →
+    </button>
+
+    <p class="text-xs text-neutral-400 mt-4">
+      Secure checkout. 7-day refund policy.
+    </p>
+  </div>
+
+</main>
+
+<script>
+(function () {
+  // =====================================================================
+  // CONFIGURATION — edit these three values before deploying.
+  // =====================================================================
+
+  // Where the "Get instant access" button takes the buyer. This is the
+  // URL your sales platform gave you when you created the product.
+  const CHECKOUT_URL = 'https://sun.eduzz.com/YOUR_PRODUCT_ID';
+
+  // Which sales platform runs your checkout. Determines which URL
+  // parameter name carries `trk` into the platform's webhook payload:
+  //   'eduzz'   → ?trk=<value>       (Eduzz custom tracker field 'code1')
+  //   'hotmart' → ?xcod=<value>      (Hotmart custom source code)
+  //   'kiwify'  → ?sck=<value>       (Kiwify source code param)
+  const CHECKOUT_PLATFORM = 'eduzz';
+
+  // =====================================================================
+  // Below here is the attribution wiring. You generally shouldn't need
+  // to change any of this unless you know what you're doing.
+  // =====================================================================
+
+  const TRK_FIELD_BY_PLATFORM = {
+    eduzz:   'trk',
+    hotmart: 'xcod',
+    kiwify:  'sck',
+  };
+
+  // Generate a new `trk` per page visit, or reuse one from a previous
+  // visit if the buyer is returning (e.g. bounced off checkout and came
+  // back). Stored in sessionStorage so it survives refreshes within the
+  // same tab but not across days.
+  const STORAGE_KEY = 'krob_trk';
+  let trk = sessionStorage.getItem(STORAGE_KEY);
+  if (!trk) {
+    trk = crypto.randomUUID();
+    sessionStorage.setItem(STORAGE_KEY, trk);
+  }
+
+  // Parse URL query params once so we can pass UTMs along as fallback.
+  // The edge middleware already captured these into the `sessions` row
+  // automatically; passing them in the POST body is defensive.
+  const urlParams = new URLSearchParams(window.location.search);
+  const utmSource   = urlParams.get('utm_source')   || '';
+  const utmMedium   = urlParams.get('utm_medium')   || '';
+  const utmCampaign = urlParams.get('utm_campaign') || '';
+  const utmContent  = urlParams.get('utm_content')  || '';
+  const utmTerm     = urlParams.get('utm_term')     || '';
+
+  // Fire the InitiateCheckout event to both browser (pixel) and
+  // server-side (/tracker) with the same event_id so Meta dedupes them.
+  function fireInitiateCheckout() {
+    const eventId = crypto.randomUUID();
+    const eventTime = Math.floor(Date.now() / 1000);
+
+    try {
+      if (window.fbq) {
+        fbq('track', 'InitiateCheckout', {}, { eventID: eventId });
+      }
+    } catch (_) {}
+
+    // Server-side fire — uses sendBeacon so the request survives the
+    // navigation to the checkout URL.
+    try {
+      const payload = JSON.stringify({
+        event_name: 'InitiateCheckout',
+        event_id: eventId,
+        event_time: eventTime,
+        event_source_url: window.location.href,
+        user_data: {},
+      });
+      navigator.sendBeacon('/tracker', new Blob([payload], { type: 'application/json' }));
+    } catch (_) {}
+  }
+
+  // POST checkout session data to D1 so the webhook handler can later
+  // look it up by `trk`. This writes fbp/fbc/utms/gclid into a row that
+  // the sales-platform webhook will enrich. Runs once on page load.
+  async function persistCheckoutSession() {
+    try {
+      await fetch('/checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          trk,
+          utm_source: utmSource,
+          utm_medium: utmMedium,
+          utm_campaign: utmCampaign,
+          utm_content: utmContent,
+          utm_term: utmTerm,
+          event_source_url: window.location.href,
+        }),
+      });
+    } catch (err) {
+      console.warn('checkout-session persist failed:', err);
+    }
+  }
+
+  persistCheckoutSession();
+
+  // Wire up the button: fire InitiateCheckout, then navigate to the
+  // checkout URL with `trk` appended as the platform's custom field.
+  const btn = document.getElementById('checkout-btn');
+  btn.addEventListener('click', () => {
+    fireInitiateCheckout();
+
+    const paramName = TRK_FIELD_BY_PLATFORM[CHECKOUT_PLATFORM] || 'trk';
+    const separator = CHECKOUT_URL.includes('?') ? '&' : '?';
+    const destination = `${CHECKOUT_URL}${separator}${paramName}=${encodeURIComponent(trk)}`;
+
+    // Small delay so the sendBeacon has time to leave the queue. Most
+    // browsers flush beacons on unload anyway, but this is belt-and-
+    // suspenders for slow Android Chrome.
+    setTimeout(() => { window.location.href = destination; }, 80);
+  });
+})();
+</script>
+
+</body>
+</html>
