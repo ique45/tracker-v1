@@ -2,7 +2,9 @@ export async function onRequest(context) {
   const { request, next, env } = context;
   const url = new URL(request.url);
 
-  // Only intercept HTML page requests, skip static assets and API endpoints
+  // Only intercept HTML page requests, skip static assets, API endpoints,
+  // and the operator-facing dashboard (we don't want tracking cookies set
+  // when an admin checks metrics).
   const isPageRequest = !url.pathname.match(
     /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff2?|ttf|eot|map|json|webp|avif|mp4|webm|pdf|xml|txt|robots)$/i
   ) && !url.pathname.startsWith('/tracker')
@@ -10,7 +12,8 @@ export async function onRequest(context) {
     && !url.pathname.startsWith('/scripts/')
     && !url.pathname.startsWith('/webhook/')
     && !url.pathname.startsWith('/checkout-session')
-    && !url.pathname.startsWith('/api/');
+    && !url.pathname.startsWith('/api/')
+    && !url.pathname.startsWith('/dash');
 
   if (!isPageRequest) {
     return next();

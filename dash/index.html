@@ -1,1679 +1,602 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KROB · Event Monitor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tracking Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
-
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-
   :root {
-    --bg-0: #0a0a0c;
-    --bg-1: #111114;
-    --bg-2: #18181c;
-    --bg-3: #222228;
-    --border: #2a2a32;
-    --border-hover: #3a3a44;
-    --text-0: #f0f0f2;
-    --text-1: #b0b0b8;
-    --text-2: #707078;
-    --green: #22c55e;
-    --green-dim: #16a34a22;
-    --red: #ef4444;
-    --red-dim: #ef444422;
-    --amber: #f59e0b;
-    --amber-dim: #f59e0b22;
-    --blue: #3b82f6;
-    --blue-dim: #3b82f622;
-    --purple: #a855f7;
-    --purple-dim: #a855f722;
-    --radius: 8px;
-    --mono: 'JetBrains Mono', monospace;
-    --sans: 'DM Sans', system-ui, sans-serif;
-  }
-
-  html { font-size: 14px; }
-
-  body {
-    font-family: var(--sans);
-    background: var(--bg-0);
-    color: var(--text-0);
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  /* ── NOISE OVERLAY ── */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 9999;
-  }
-
-  /* ── LAYOUT ── */
-  .shell {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 24px 20px 80px;
-  }
-
-  /* ── HEADER ── */
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 32px;
-    flex-wrap: wrap;
-  }
-
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .logo-mark {
-    width: 36px;
-    height: 36px;
-    background: linear-gradient(135deg, var(--green), var(--blue));
-    border-radius: 10px;
-    display: grid;
-    place-items: center;
-    font-family: var(--mono);
-    font-weight: 700;
-    font-size: 15px;
-    color: var(--bg-0);
-    letter-spacing: -1px;
-  }
-
-  .logo-text {
-    font-family: var(--mono);
-    font-weight: 600;
-    font-size: 16px;
-    letter-spacing: -0.5px;
-  }
-
-  .logo-text span {
-    color: var(--text-2);
-    font-weight: 400;
-  }
-
-  .header-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  /* ── AUTH BAR ── */
-  .auth-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--bg-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 4px 4px 4px 12px;
-  }
-
-  .auth-bar label {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-2);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    white-space: nowrap;
-  }
-
-  .auth-bar input {
-    background: var(--bg-1);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 6px 10px;
-    color: var(--text-0);
-    font-family: var(--mono);
-    font-size: 12px;
-    width: 180px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  .auth-bar input:focus { border-color: var(--blue); }
-  .auth-bar input::placeholder { color: var(--text-2); }
-
-  /* ── BUTTONS ── */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    background: var(--bg-2);
-    color: var(--text-1);
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-
-  .btn:hover {
-    background: var(--bg-3);
-    border-color: var(--border-hover);
-    color: var(--text-0);
-  }
-
-  .btn svg { width: 14px; height: 14px; }
-
-  .btn-refresh.spinning svg {
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* ── LIVE INDICATOR ── */
-  .live-dot {
-    width: 7px;
-    height: 7px;
-    background: var(--green);
-    border-radius: 50%;
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
-    50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(34,197,94,0); }
-  }
-
-  .live-label {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-2);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  /* ── SUMMARY CARDS ── */
-  .cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
-    margin-bottom: 28px;
-  }
-
-  .card {
-    background: var(--bg-1);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px 20px;
-    position: relative;
-    overflow: hidden;
-    transition: border-color 0.2s;
-  }
-
-  .card:hover { border-color: var(--border-hover); }
-
-  .card::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-  }
-
-  .card.card-lead::after { background: var(--blue); }
-  .card.card-gestor::after { background: var(--purple); }
-  .card.card-ok::after { background: var(--green); }
-  .card.card-fail::after { background: var(--red); }
-  .card.card-bot::after { background: var(--amber); }
-  .card.card-total::after { background: linear-gradient(90deg, var(--blue), var(--purple)); }
-
-  .card-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--text-2);
-    margin-bottom: 8px;
-  }
-
-  .card-value {
-    font-family: var(--mono);
-    font-size: 28px;
-    font-weight: 700;
-    letter-spacing: -1px;
-    line-height: 1;
-  }
-
-  .card-ok .card-value { color: var(--green); }
-  .card-fail .card-value { color: var(--red); }
-  .card-bot .card-value { color: var(--amber); }
-
-  /* ── RECOVERY PANEL ── */
-  .recovery-panel {
-    background: var(--bg-1);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-    margin-bottom: 28px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .recovery-panel::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--green), #10b981, var(--blue));
-  }
-
-  .recovery-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .recovery-title {
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: -0.3px;
-  }
-
-  .recovery-subtitle {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-2);
-  }
-
-  .recovery-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 20px;
-  }
-
-  .recovery-card {
-    background: var(--bg-0);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
-    position: relative;
-  }
-
-  .recovery-card-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 14px;
-  }
-
-  .recovery-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    display: grid;
-    place-items: center;
-  }
-
-  .recovery-icon.adblock {
-    background: rgba(239,68,68,0.12);
-    color: var(--red);
-  }
-
-  .recovery-icon.itp {
-    background: rgba(245,158,11,0.12);
-    color: var(--amber);
-  }
-
-  .recovery-icon svg { width: 16px; height: 16px; }
-
-  .recovery-card-title {
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: -0.3px;
-  }
-
-  .recovery-card-desc {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--text-2);
-    margin-top: 2px;
-  }
-
-  .recovery-big {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-
-  .recovery-number {
-    font-family: var(--mono);
-    font-size: 32px;
-    font-weight: 700;
-    letter-spacing: -1px;
-    color: var(--green);
-    line-height: 1;
-  }
-
-  .recovery-pct {
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--green);
-    opacity: 0.8;
-  }
-
-  .recovery-bar-wrap {
-    background: var(--bg-2);
-    border-radius: 4px;
-    height: 6px;
-    overflow: hidden;
-    margin-bottom: 8px;
-  }
-
-  .recovery-bar {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
-  }
-
-  .recovery-bar.adblock { background: linear-gradient(90deg, var(--red), #f87171); }
-  .recovery-bar.itp { background: linear-gradient(90deg, var(--amber), #fbbf24); }
-
-  .recovery-detail {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-2);
-    line-height: 1.7;
-  }
-
-  .recovery-detail strong {
-    color: var(--text-1);
-    font-weight: 500;
-  }
-
-  /* Browser breakdown */
-  .browser-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .browser-table th {
-    font-family: var(--mono);
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
-    color: var(--text-2);
-    text-align: left;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .browser-table td {
-    font-family: var(--mono);
-    font-size: 12px;
-    padding: 7px 12px;
-    border-bottom: 1px solid var(--border);
-    white-space: nowrap;
-    color: var(--text-1);
-  }
-
-  .browser-table tr:last-child td { border-bottom: none; }
-
-  .browser-table .pct-cell {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .mini-bar-wrap {
-    flex: 1;
-    max-width: 80px;
-    background: var(--bg-2);
-    border-radius: 3px;
-    height: 4px;
-    overflow: hidden;
-  }
-
-  .mini-bar {
-    height: 100%;
-    border-radius: 3px;
-    background: var(--green);
-    transition: width 0.4s ease;
-  }
-
-  @media (max-width: 768px) {
-    .recovery-grid { grid-template-columns: 1fr; }
-  }
-
-  /* ── TABS ── */
-  .tabs {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 16px;
-    background: var(--bg-1);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 4px;
-    width: fit-content;
-  }
-
-  .tab {
-    padding: 7px 18px;
-    border-radius: 6px;
-    border: none;
-    background: transparent;
-    color: var(--text-2);
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-
-  .tab:hover { color: var(--text-1); }
-  .tab.active {
-    background: var(--bg-3);
-    color: var(--text-0);
-  }
-
-  /* ── TABLE ── */
-  .table-wrap {
-    background: var(--bg-1);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  thead th {
-    font-family: var(--mono);
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--text-2);
-    text-align: left;
-    padding: 12px 16px;
-    background: var(--bg-2);
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    white-space: nowrap;
-  }
-
-  tbody tr {
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
-    transition: background 0.1s;
-  }
-
-  tbody tr:last-child { border-bottom: none; }
-  tbody tr:hover { background: var(--bg-2); }
-  tbody tr.expanded { background: var(--bg-2); }
-
-  td {
-    padding: 10px 16px;
-    font-size: 13px;
-    white-space: nowrap;
-    vertical-align: middle;
-  }
-
-  .col-time {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text-1);
-  }
-
-  .col-event {
-    font-family: var(--mono);
-    font-weight: 600;
-    font-size: 12px;
-  }
-
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    font-family: var(--mono);
-  }
-
-  .badge-lead { background: var(--blue-dim); color: var(--blue); }
-  .badge-gestor { background: var(--purple-dim); color: var(--purple); }
-  .badge-other { background: var(--bg-3); color: var(--text-1); }
-
-  .col-email {
-    font-family: var(--mono);
-    font-size: 12px;
-    max-width: 220px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* ── STATUS DOTS ── */
-  .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-  }
-
-  .dot-ok { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,0.4); }
-  .dot-fail { background: var(--red); box-shadow: 0 0 6px rgba(239,68,68,0.4); }
-  .dot-warn { background: var(--amber); box-shadow: 0 0 6px rgba(245,158,11,0.4); }
-  .dot-na { background: var(--text-2); opacity: 0.3; }
-
-  .status-cell {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .status-label {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-2);
-  }
-
-  /* ── EXPANDED ROW ── */
-  .detail-row td {
-    padding: 0;
-    cursor: default;
-  }
-
-  .detail-row:hover { background: transparent !important; }
-
-  .detail-panel {
-    padding: 0 16px 16px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  .detail-section {
-    background: var(--bg-0);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 14px 16px;
-  }
-
-  .detail-section.full {
-    grid-column: 1 / -1;
-  }
-
-  .detail-title {
-    font-family: var(--mono);
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--text-2);
-    margin-bottom: 10px;
-  }
-
-  .detail-grid {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 4px 12px;
-  }
-
-  .detail-key {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-2);
-  }
-
-  .detail-val {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-0);
-    word-break: break-all;
-  }
-
-  .meta-response-box {
-    background: var(--bg-1);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 12px;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-1);
-    white-space: pre-wrap;
-    word-break: break-all;
-    max-height: 300px;
-    overflow-y: auto;
-    line-height: 1.6;
-  }
-
-  .meta-response-box::-webkit-scrollbar { width: 6px; }
-  .meta-response-box::-webkit-scrollbar-track { background: var(--bg-2); border-radius: 3px; }
-  .meta-response-box::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 3px; }
-
-  /* ── LOAD MORE ── */
-  .load-more-wrap {
-    display: flex;
-    justify-content: center;
-    padding: 20px;
-  }
-
-  .btn-load {
-    padding: 10px 32px;
-    font-size: 13px;
-  }
-
-  /* ── EMPTY STATE ── */
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--text-2);
-    font-family: var(--mono);
-    font-size: 13px;
-  }
-
-  .empty-state .icon {
-    font-size: 32px;
-    margin-bottom: 12px;
-    opacity: 0.3;
-  }
-
-  /* ── SKELETON ── */
-  .skeleton {
-    background: linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3) 50%, var(--bg-2) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-    border-radius: 4px;
-    height: 16px;
-  }
-
-  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-
-  /* ── VIEW SWITCHER (top-level) ── */
-  .view-switch {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 20px;
-    background: var(--bg-1);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 4px;
-    width: fit-content;
-  }
-
-  .view-switch button {
-    padding: 9px 22px;
-    border-radius: 6px;
-    border: none;
-    background: transparent;
-    color: var(--text-2);
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .view-switch button:hover { color: var(--text-1); }
-  .view-switch button.active {
-    background: var(--bg-3);
-    color: var(--text-0);
-  }
-
-  /* ── PURCHASE-VIEW PILLS (multi-state status) ── */
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    font-family: var(--mono);
-    line-height: 1.4;
-  }
-  .pill-ok    { background: var(--green-dim);  color: var(--green); }
-  .pill-fail  { background: var(--red-dim);    color: var(--red); }
-  .pill-skip  { background: var(--bg-3);       color: var(--text-2); }
-  .pill-warn  { background: var(--amber-dim);  color: var(--amber); }
-  .pill-na    { background: var(--bg-3);       color: var(--text-2); opacity: 0.6; }
-
-  /* Three-column integration cards inside detail panel */
-  .integration-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    grid-column: 1 / -1;
-  }
-
-  @media (max-width: 1024px) {
-    .integration-grid { grid-template-columns: 1fr; }
-  }
-
-  .integration-card {
-    background: var(--bg-1);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 14px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    min-width: 0;
-  }
-
-  .integration-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-  }
-
-  .integration-name {
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: -0.2px;
-  }
-
-  .integration-meta {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--text-2);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-top: 8px;
-    margin-bottom: 4px;
-  }
-
-  .json-box {
-    background: var(--bg-0);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 10px 12px;
-    font-family: var(--mono);
-    font-size: 10.5px;
-    color: var(--text-1);
-    white-space: pre;
-    overflow: auto;
-    max-height: 280px;
-    line-height: 1.55;
-  }
-  .json-box::-webkit-scrollbar { width: 6px; height: 6px; }
-  .json-box::-webkit-scrollbar-track { background: var(--bg-2); border-radius: 3px; }
-  .json-box::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 3px; }
-
-  .partial-failure-banner {
-    background: var(--red-dim);
-    border: 1px solid var(--red);
-    border-radius: 4px;
-    padding: 8px 10px;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--red);
-    margin-bottom: 6px;
-  }
-
-  /* Purchase row click-id snippet */
-  .clickid-snippet {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-2);
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: inline-block;
-    vertical-align: middle;
-  }
-
-  .col-value {
-    font-family: var(--mono);
-    font-weight: 600;
-    color: var(--text-0);
-  }
-
-  /* ── COUNTDOWN ── */
-  .countdown {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-2);
-    min-width: 20px;
-    text-align: right;
-  }
-
-  /* ── RESPONSIVE ── */
-  @media (max-width: 768px) {
-    .header { flex-direction: column; align-items: flex-start; }
-    .header-actions { width: 100%; flex-wrap: wrap; }
-    .auth-bar { width: 100%; }
-    .auth-bar input { flex: 1; }
-    .cards { grid-template-columns: repeat(2, 1fr); }
-    .detail-panel { grid-template-columns: 1fr; }
-    .hide-mobile { display: none; }
-    td { padding: 8px 10px; font-size: 12px; }
-  }
-
-  @media (max-width: 480px) {
-    .cards { grid-template-columns: 1fr; }
-    .shell { padding: 16px 12px 60px; }
-  }
-
-  /* ── TOAST ── */
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: var(--bg-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 10px 16px;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text-1);
-    transform: translateY(80px);
-    opacity: 0;
-    transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
-    z-index: 100;
-  }
-
-  .toast.show {
-    transform: translateY(0);
-    opacity: 1;
-  }
-
-  .toast.error { border-color: var(--red); color: var(--red); }
+    --bg: #f7f7f8;
+    --card: #ffffff;
+    --border: #e4e4e7;
+    --text: #18181b;
+    --dim: #52525b;
+    --muted: #a1a1aa;
+    --accent-blue:   #2563eb;
+    --accent-green:  #16a34a;
+    --accent-amber:  #d97706;
+    --accent-red:    #dc2626;
+    --accent-purple: #7c3aed;
+  }
+  html, body { background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .mono { font-family: "JetBrains Mono", "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
+  .kpi-label { color: var(--dim); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .kpi-value { font-size: 1.875rem; font-weight: 600; letter-spacing: -0.02em; }
+  .accent-blue   { color: var(--accent-blue);   }
+  .accent-green  { color: var(--accent-green);  }
+  .accent-amber  { color: var(--accent-amber);  }
+  .accent-red    { color: var(--accent-red);    }
+  .accent-purple { color: var(--accent-purple); }
+  .dash-tab { padding: 0.5rem 0.875rem; font-size: 0.875rem; border-bottom: 2px solid transparent; color: var(--dim); cursor: pointer; }
+  .dash-tab.active { color: var(--text); border-color: var(--accent-blue); }
+  .range-btn { padding: 0.375rem 0.75rem; font-size: 0.8125rem; border: 1px solid var(--border); background: var(--card); border-radius: 8px; cursor: pointer; color: var(--dim); }
+  .range-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
+  .row-hover:hover { background: #fafafa; }
+  .fade-in { animation: fadeIn 0.35s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
 <body>
-<div class="shell">
-  <!-- HEADER -->
-  <div class="header">
-    <div class="logo">
-      <div class="logo-mark">K</div>
-      <div class="logo-text">event.monitor <span>/ conversions</span></div>
-    </div>
-    <div class="header-actions">
-      <div class="auth-bar">
-        <label>key</label>
-        <input type="password" id="authKey" placeholder="dash access key" spellcheck="false">
-      </div>
-      <div class="live-label">
-        <div class="live-dot"></div>
-        <span class="countdown" id="countdown">30s</span>
-      </div>
-      <button class="btn btn-refresh" id="btnRefresh" onclick="manualRefresh()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-        Refresh
-      </button>
-    </div>
-  </div>
 
-  <!-- VIEW SWITCHER -->
-  <div class="view-switch">
-    <button id="viewLeadsBtn" class="active" onclick="setView('leads')">Leads</button>
-    <button id="viewPurchasesBtn" onclick="setView('purchases')">Purchases</button>
-  </div>
+<!-- Auth gate: pulls ?key= from URL, falls back to sessionStorage, prompts if missing -->
+<div id="app" class="hidden min-h-screen">
 
-  <!-- ═══════════════ LEADS VIEW ═══════════════ -->
-  <div id="leadsView">
-
-  <!-- SUMMARY CARDS -->
-  <div class="cards" id="cards">
-    <div class="card card-total">
-      <div class="card-label">Total Conversions</div>
-      <div class="card-value" id="cardTotal">—</div>
-    </div>
-    <div class="card card-lead">
-      <div class="card-label">Lead Events</div>
-      <div class="card-value" id="cardLead">—</div>
-    </div>
-    <div class="card card-ok">
-      <div class="card-label">Meta OK</div>
-      <div class="card-value" id="cardOk">—</div>
-    </div>
-    <div class="card card-fail">
-      <div class="card-label">Meta Fail</div>
-      <div class="card-value" id="cardFail">—</div>
-    </div>
-    <div class="card card-gestor">
-      <div class="card-label">GestorAtuante</div>
-      <div class="card-value" id="cardGestor">—</div>
-    </div>
-    <div class="card card-bot">
-      <div class="card-label">Bots Filtered</div>
-      <div class="card-value" id="cardBots">—</div>
-    </div>
-  </div>
-
-  <!-- RECOVERY PANEL -->
-  <div class="recovery-panel" id="recoveryPanel" style="display:none">
-    <div class="recovery-header">
-      <div>
-        <div class="recovery-title">Recovered From</div>
-        <div class="recovery-subtitle">Events our server-side structure saved from being lost</div>
-      </div>
-    </div>
-    <div class="recovery-grid">
-      <!-- Ad Blocker Card -->
-      <div class="recovery-card">
-        <div class="recovery-card-header">
-          <div class="recovery-icon adblock">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="4.5" y1="4.5" x2="19.5" y2="19.5"/></svg>
-          </div>
-          <div>
-            <div class="recovery-card-title">Ad Blockers</div>
-            <div class="recovery-card-desc">Pixel blocked, CAPI delivered</div>
-          </div>
+  <header class="border-b border-[color:var(--border)] bg-white">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-[color:var(--text)] text-white flex items-center justify-center font-bold">T</div>
+        <div>
+          <div class="font-semibold">Tracking Dashboard</div>
+          <div class="text-xs text-[color:var(--muted)]">Attribution &amp; performance for this deployment</div>
         </div>
-        <div class="recovery-big">
-          <span class="recovery-number" id="recAdblockNum">0</span>
-          <span class="recovery-pct" id="recAdblockPct"></span>
-        </div>
-        <div class="recovery-bar-wrap">
-          <div class="recovery-bar adblock" id="recAdblockBar" style="width:0%"></div>
-        </div>
-        <div class="recovery-detail" id="recAdblockDetail"></div>
       </div>
-      <!-- ITP / Tracking Prevention Card -->
-      <div class="recovery-card">
-        <div class="recovery-card-header">
-          <div class="recovery-icon itp">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          </div>
-          <div>
-            <div class="recovery-card-title">ITP / Tracking Prevention</div>
-            <div class="recovery-card-desc">Cookies set server-side via HTTP</div>
+      <div class="flex items-center gap-2" id="range-picker">
+        <button class="range-btn" data-days="7">7d</button>
+        <button class="range-btn active" data-days="30">30d</button>
+        <button class="range-btn" data-days="90">90d</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6 space-y-6">
+
+    <!-- Revenue Overview -->
+    <section class="fade-in">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="card p-5">
+          <div class="kpi-label">Gross Revenue</div>
+          <div class="kpi-value mono accent-amber mt-1" id="kpi-revenue">—</div>
+          <div class="text-xs text-[color:var(--muted)] mt-1" id="kpi-revenue-sub">&nbsp;</div>
+        </div>
+        <div class="card p-5">
+          <div class="kpi-label">Sales</div>
+          <div class="kpi-value mono mt-1" id="kpi-sales">—</div>
+          <div class="text-xs text-[color:var(--muted)] mt-1">Paid transactions</div>
+        </div>
+        <div class="card p-5">
+          <div class="kpi-label">Average Order</div>
+          <div class="kpi-value mono accent-blue mt-1" id="kpi-aov">—</div>
+          <div class="text-xs text-[color:var(--muted)] mt-1">Gross / sales</div>
+        </div>
+        <div class="card p-5">
+          <div class="kpi-label">Leads</div>
+          <div class="kpi-value mono accent-green mt-1" id="kpi-leads">—</div>
+          <div class="text-xs text-[color:var(--muted)] mt-1">Non-bot, last window</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Revenue time series -->
+    <section class="card p-5 fade-in">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <div class="font-semibold">Revenue over time</div>
+          <div class="text-xs text-[color:var(--muted)]">Daily gross revenue and sales count</div>
+        </div>
+      </div>
+      <div class="h-64"><canvas id="chart-revenue"></canvas></div>
+    </section>
+
+    <!-- Product cards + time series -->
+    <section class="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 fade-in">
+      <div class="card p-5">
+        <div class="font-semibold mb-3">Products</div>
+        <div id="product-cards" class="space-y-2">
+          <div class="text-sm text-[color:var(--muted)]">Loading…</div>
+        </div>
+      </div>
+      <div class="card p-5">
+        <div class="font-semibold mb-3">Sales per product over time</div>
+        <div class="h-64"><canvas id="chart-products"></canvas></div>
+      </div>
+    </section>
+
+    <!-- Paid Traffic Attribution -->
+    <section class="card p-5 fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <div class="font-semibold">Paid traffic attribution</div>
+          <div class="text-xs text-[color:var(--muted)]">
+            Sales grouped by the click identifier on the originating session.
+            Meta spend is synced from Meta Marketing API
+            <span id="attribution-sync-note" class="ml-1"></span>.
           </div>
         </div>
-        <div class="recovery-big">
-          <span class="recovery-number" id="recItpNum">0</span>
-          <span class="recovery-pct" id="recItpPct"></span>
-        </div>
-        <div class="recovery-bar-wrap">
-          <div class="recovery-bar itp" id="recItpBar" style="width:0%"></div>
-        </div>
-        <div class="recovery-detail" id="recItpDetail"></div>
       </div>
-    </div>
-    <!-- Per-browser breakdown -->
-    <div style="background:var(--bg-0);border:1px solid var(--border);border-radius:8px;overflow:hidden">
-      <table class="browser-table">
-        <thead>
-          <tr>
-            <th>Browser</th>
-            <th>Events</th>
-            <th>Ad Block</th>
-            <th>ITP Recovered</th>
-          </tr>
-        </thead>
-        <tbody id="browserTbody"></tbody>
-      </table>
-    </div>
-  </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="border border-[color:var(--border)] rounded-lg p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-2 h-2 rounded-full" style="background:var(--accent-blue)"></div>
+            <div class="text-sm font-semibold">Meta</div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mt-3 mono">
+            <div>
+              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Sales</div>
+              <div class="text-xl" id="meta-sales">—</div>
+            </div>
+            <div>
+              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Revenue</div>
+              <div class="text-xl" id="meta-revenue">—</div>
+            </div>
+            <div>
+              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Spend</div>
+              <div class="text-xl" id="meta-spend">—</div>
+            </div>
+            <div>
+              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">CPA</div>
+              <div class="text-xl" id="meta-cpa">—</div>
+            </div>
+            <div class="col-span-2">
+              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">ROAS</div>
+              <div class="text-2xl" id="meta-roas">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="border border-[color:var(--border)] rounded-lg p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-2 h-2 rounded-full" style="background:var(--accent-amber)"></div>
+            <div class="text-sm font-semibold">Google</div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mt-3 mono">
+            <div>
+              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Sales</div>
+              <div class="text-xl" id="google-sales">—</div>
+            </div>
+            <div>
+              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Revenue</div>
+              <div class="text-xl" id="google-revenue">—</div>
+            </div>
+          </div>
+          <div class="text-[11px] text-[color:var(--muted)] mt-3 leading-snug">
+            Spend sync for Google Ads arrives in v1.1. Revenue above is from purchases with gclid/gbraid/wbraid captured on the session.
+          </div>
+        </div>
+        <div class="border border-[color:var(--border)] rounded-lg p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-2 h-2 rounded-full" style="background:var(--accent-green)"></div>
+            <div class="text-sm font-semibold">Organic</div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mt-3 mono">
+            <div>
+              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Sales</div>
+              <div class="text-xl" id="organic-sales">—</div>
+            </div>
+            <div>
+              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Revenue</div>
+              <div class="text-xl" id="organic-revenue">—</div>
+            </div>
+          </div>
+          <div class="text-[11px] text-[color:var(--muted)] mt-3 leading-snug">
+            No fbclid / gclid / wbraid / gbraid on the originating session.
+          </div>
+        </div>
+      </div>
+    </section>
 
-  <!-- TABS -->
-  <div class="tabs" id="tabs">
-    <button class="tab active" data-filter="" onclick="setFilter(this)">All</button>
-    <button class="tab" data-filter="Lead" onclick="setFilter(this)">Lead</button>
-    <button class="tab" data-filter="GestorAtuante" onclick="setFilter(this)">GestorAtuante</button>
-  </div>
+    <!-- UTM Breakdown -->
+    <section class="card p-5 fade-in">
+      <div class="flex items-center justify-between mb-3">
+        <div class="font-semibold">UTM breakdown</div>
+        <div class="text-xs text-[color:var(--muted)]">Grouped from purchase_log</div>
+      </div>
+      <div class="flex gap-1 border-b border-[color:var(--border)] mb-4 -mx-5 px-5" id="utm-tabs">
+        <div class="dash-tab active" data-dim="utm_source">source</div>
+        <div class="dash-tab" data-dim="utm_medium">medium</div>
+        <div class="dash-tab" data-dim="utm_campaign">campaign</div>
+        <div class="dash-tab" data-dim="utm_content">content</div>
+        <div class="dash-tab" data-dim="utm_term">term</div>
+      </div>
+      <div id="utm-filters" class="flex flex-wrap gap-2 mb-3"></div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-xs uppercase tracking-wider text-[color:var(--dim)] border-b border-[color:var(--border)]">
+            <tr>
+              <th class="text-left py-2 pr-4">Value</th>
+              <th class="text-right py-2 pr-4">Sales</th>
+              <th class="text-right py-2 pr-4">Revenue</th>
+              <th class="text-right py-2">AOV</th>
+            </tr>
+          </thead>
+          <tbody id="utm-tbody" class="mono">
+            <tr><td colspan="4" class="py-6 text-center text-[color:var(--muted)]">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-  <!-- TABLE -->
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Time</th>
-          <th>Event</th>
-          <th>Email</th>
-          <th>Meta</th>
-          <th class="hide-mobile">Pixel</th>
-          <th class="hide-mobile">Browser / OS</th>
-          <th>Bot</th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
-    <div id="emptyState" class="empty-state" style="display:none">
-      <div class="icon">◇</div>
-      Enter your access key and press Refresh
-    </div>
-  </div>
+    <!-- Leads with UTMs -->
+    <section class="card p-5 fade-in">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <div class="font-semibold">Recent leads</div>
+          <div class="text-xs text-[color:var(--muted)]">Lead events joined to their originating session UTMs</div>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-xs uppercase tracking-wider text-[color:var(--dim)] border-b border-[color:var(--border)]">
+            <tr>
+              <th class="text-left py-2 pr-4">When</th>
+              <th class="text-left py-2 pr-4">Email</th>
+              <th class="text-left py-2 pr-4">Source</th>
+              <th class="text-left py-2 pr-4">Campaign</th>
+              <th class="text-left py-2 pr-4">Medium</th>
+              <th class="text-center py-2 pr-4">Meta</th>
+              <th class="text-center py-2">GA4</th>
+            </tr>
+          </thead>
+          <tbody id="leads-tbody">
+            <tr><td colspan="7" class="py-6 text-center text-[color:var(--muted)]">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-  <!-- LOAD MORE -->
-  <div class="load-more-wrap" id="loadMoreWrap" style="display:none">
-    <button class="btn btn-load" onclick="loadMore()">Load more events</button>
-  </div>
+    <!-- Tracking Health -->
+    <section class="card p-5 fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <div class="font-semibold">Tracking health</div>
+          <div class="text-xs text-[color:var(--muted)]">
+            First-party capture vs pixel. Shows how many events you would have lost without server-side tracking.
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mono">
+        <div>
+          <div class="kpi-label">Real events</div>
+          <div class="text-2xl" id="health-real">—</div>
+        </div>
+        <div>
+          <div class="kpi-label">ITP recovered</div>
+          <div class="text-2xl accent-blue" id="health-itp">—</div>
+        </div>
+        <div>
+          <div class="kpi-label">Adblock recovered</div>
+          <div class="text-2xl accent-green" id="health-adblock">—</div>
+        </div>
+        <div>
+          <div class="kpi-label">Bots filtered</div>
+          <div class="text-2xl accent-red" id="health-bots">—</div>
+        </div>
+      </div>
+      <div class="mt-5">
+        <div class="text-xs uppercase tracking-wider text-[color:var(--dim)] mb-2">fbp source breakdown</div>
+        <div class="flex flex-wrap gap-2 text-xs" id="health-fbp"></div>
+      </div>
+    </section>
 
-  </div><!-- /leadsView -->
-
-  <!-- ═══════════════ PURCHASES VIEW ═══════════════ -->
-  <div id="purchasesView" style="display:none">
-
-  <!-- SUMMARY CARDS -->
-  <div class="cards">
-    <div class="card card-total">
-      <div class="card-label">Purchases (24h)</div>
-      <div class="card-value" id="pCardTotal">—</div>
-    </div>
-    <div class="card card-ok">
-      <div class="card-label">Meta OK</div>
-      <div class="card-value" id="pCardMeta">—</div>
-    </div>
-    <div class="card card-ok">
-      <div class="card-label">GA4 OK</div>
-      <div class="card-value" id="pCardGa4">—</div>
-    </div>
-    <div class="card card-ok">
-      <div class="card-label">Google Ads OK</div>
-      <div class="card-value" id="pCardGads">—</div>
-    </div>
-    <div class="card card-bot">
-      <div class="card-label">GAds Skipped</div>
-      <div class="card-value" id="pCardSkipped">—</div>
-    </div>
-  </div>
-
-  <!-- TABLE -->
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Time</th>
-          <th>Email</th>
-          <th>Value</th>
-          <th class="hide-mobile">Product</th>
-          <th>Meta</th>
-          <th>GA4</th>
-          <th>GAds</th>
-          <th class="hide-mobile">Click ID</th>
-        </tr>
-      </thead>
-      <tbody id="pTbody"></tbody>
-    </table>
-    <div id="pEmptyState" class="empty-state" style="display:none">
-      <div class="icon">◇</div>
-      No purchases yet — fire a test webhook to see it here
-    </div>
-  </div>
-
-  <!-- LOAD MORE -->
-  <div class="load-more-wrap" id="pLoadMoreWrap" style="display:none">
-    <button class="btn btn-load" onclick="loadMorePurchases()">Load more purchases</button>
-  </div>
-
-  </div><!-- /purchasesView -->
+    <footer class="pt-4 pb-10 text-xs text-[color:var(--muted)] text-center">
+      Tracking Stack &middot; self-hosted on Cloudflare Pages
+    </footer>
+  </main>
 </div>
 
-<!-- TOAST -->
-<div class="toast" id="toast"></div>
+<!-- Auth prompt shown when no key is set -->
+<div id="auth-gate" class="min-h-screen flex items-center justify-center hidden">
+  <div class="card p-6 max-w-sm w-full">
+    <div class="font-semibold mb-2">Dashboard key required</div>
+    <div class="text-sm text-[color:var(--dim)] mb-4">
+      Paste the <code>DASH_KEY</code> you set in Cloudflare environment variables.
+    </div>
+    <input id="auth-input" type="password" placeholder="DASH_KEY" class="w-full border border-[color:var(--border)] rounded-lg px-3 py-2 text-sm mb-3 font-mono">
+    <button id="auth-submit" class="w-full bg-[color:var(--text)] text-white rounded-lg py-2 text-sm font-semibold">Open dashboard</button>
+    <div id="auth-error" class="text-xs text-[color:var(--accent-red)] mt-2 hidden">Invalid key.</div>
+  </div>
+</div>
 
 <script>
-(function() {
-  'use strict';
+(function () {
+  const qs  = sel => document.querySelector(sel);
+  const qsa = sel => document.querySelectorAll(sel);
 
-  var KEY_STORAGE = 'krob_dash_key';
-  var REFRESH_INTERVAL = 30;
-  var PAGE_SIZE = 100;
-  var PURCHASE_PAGE_SIZE = 50;
+  // -------- Auth --------
+  const url = new URL(window.location.href);
+  let key = url.searchParams.get('key') || sessionStorage.getItem('dashKey') || '';
+  const authGate = qs('#auth-gate');
+  const app = qs('#app');
 
-  var state = {
-    events: [],
-    summary: [],
-    filter: '',
-    offset: 0,
-    loading: false,
-    expandedRow: null,
-    timer: null,
-    countdown: REFRESH_INTERVAL,
-    view: 'leads',
-  };
-
-  var pState = {
-    rows: [],
-    summary: {},
-    offset: 0,
-    loading: false,
-    expandedRow: null,
-  };
-
-  // ── ELEMENTS ──
-  var $key = document.getElementById('authKey');
-  var $tbody = document.getElementById('tbody');
-  var $empty = document.getElementById('emptyState');
-  var $loadMore = document.getElementById('loadMoreWrap');
-  var $toast = document.getElementById('toast');
-  var $countdown = document.getElementById('countdown');
-  var $btnRefresh = document.getElementById('btnRefresh');
-
-  // ── INIT ──
-  var savedKey = localStorage.getItem(KEY_STORAGE) || '';
-  $key.value = savedKey;
-
-  $key.addEventListener('input', function() {
-    localStorage.setItem(KEY_STORAGE, $key.value);
-  });
-
-  $key.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') manualRefresh();
-  });
-
-  if (savedKey) fetchActive(false);
-  startCountdown();
-
-  function fetchActive(append) {
-    if (state.view === 'purchases') return fetchPurchases(append);
-    return fetchData(append);
+  async function openDashboard() {
+    app.classList.remove('hidden');
+    authGate.classList.add('hidden');
+    sessionStorage.setItem('dashKey', key);
+    await loadAll(currentDays);
   }
 
-  // ── FETCH ──
-  function fetchData(append) {
-    var key = $key.value.trim();
-    if (!key) {
-      showEmpty(true);
+  async function probeKey(k) {
+    try {
+      const r = await fetch(`/api/revenue?key=${encodeURIComponent(k)}&days=1`);
+      return r.ok;
+    } catch (_) { return false; }
+  }
+
+  (async function gate() {
+    if (key && await probeKey(key)) { return openDashboard(); }
+    authGate.classList.remove('hidden');
+    qs('#auth-submit').addEventListener('click', async () => {
+      key = qs('#auth-input').value.trim();
+      if (!key) return;
+      if (await probeKey(key)) { openDashboard(); }
+      else { qs('#auth-error').classList.remove('hidden'); }
+    });
+    qs('#auth-input').addEventListener('keydown', e => { if (e.key === 'Enter') qs('#auth-submit').click(); });
+  })();
+
+  // -------- State --------
+  let currentDays = 30;
+  let utmDimension = 'utm_source';
+  let utmFilters = {};
+  let revenueChart = null;
+  let productsChart = null;
+
+  // -------- Helpers --------
+  const fetchJson = path => fetch(`${path}${path.includes('?') ? '&' : '?'}key=${encodeURIComponent(key)}`).then(r => r.json());
+  const money = (n, cur = 'BRL') => new Intl.NumberFormat('en-US', { style: 'currency', currency: cur, maximumFractionDigits: 0 }).format(Number(n || 0));
+  const fmtInt = n => new Intl.NumberFormat('en-US').format(Number(n || 0));
+  const fmtDate = ts => new Date(Number(ts) * 1000).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  // -------- Data loaders --------
+  async function loadRevenue(days) {
+    const data = await fetchJson(`/api/revenue?days=${days}`);
+    qs('#kpi-revenue').textContent = money(data.gross, data.currency);
+    qs('#kpi-revenue-sub').textContent = `${data.days} days`;
+    qs('#kpi-sales').textContent = fmtInt(data.sales);
+    qs('#kpi-aov').textContent = money(data.aov, data.currency);
+    renderRevenueChart(data.time_series || []);
+  }
+
+  async function loadProducts(days) {
+    const data = await fetchJson(`/api/products?days=${days}`);
+    const container = qs('#product-cards');
+    if (!data.products || data.products.length === 0) {
+      container.innerHTML = '<div class="text-sm text-[color:var(--muted)]">No products yet.</div>';
+    } else {
+      container.innerHTML = data.products.map(p => `
+        <div class="border border-[color:var(--border)] rounded-lg p-3">
+          <div class="text-xs text-[color:var(--muted)] truncate">${escapeHtml(p.product_name || p.product_id)}</div>
+          <div class="mt-1 flex items-baseline justify-between">
+            <div class="mono text-lg accent-amber">${money(p.revenue, p.currency || 'BRL')}</div>
+            <div class="mono text-xs text-[color:var(--dim)]">${fmtInt(p.sales)} sales</div>
+          </div>
+        </div>
+      `).join('');
+    }
+    renderProductsChart(data.time_series || []);
+  }
+
+  async function loadAttribution(days) {
+    const data = await fetchJson(`/api/attribution?days=${days}`);
+    qs('#meta-sales').textContent   = fmtInt(data.groups.meta.sales);
+    qs('#meta-revenue').textContent = money(data.groups.meta.revenue);
+    qs('#meta-spend').textContent   = data.meta_spend > 0 ? money(data.meta_spend) : '—';
+    qs('#meta-cpa').textContent     = data.meta_cpa != null ? money(data.meta_cpa) : '—';
+    qs('#meta-roas').textContent    = data.meta_roas != null ? data.meta_roas.toFixed(2) + 'x' : '—';
+    qs('#google-sales').textContent  = fmtInt(data.groups.google.sales);
+    qs('#google-revenue').textContent= money(data.groups.google.revenue);
+    qs('#organic-sales').textContent = fmtInt(data.groups.organic.sales);
+    qs('#organic-revenue').textContent = money(data.groups.organic.revenue);
+
+    const note = qs('#attribution-sync-note');
+    if (data.last_synced_at) {
+      const dt = new Date(data.last_synced_at * 1000);
+      note.textContent = `(last sync ${dt.toLocaleString()})`;
+    } else {
+      note.textContent = '(sync not configured yet — see docs/ad-spend-sync.md)';
+    }
+  }
+
+  async function loadUtm() {
+    const params = new URLSearchParams({ days: String(currentDays), dimension: utmDimension });
+    for (const [k, v] of Object.entries(utmFilters)) params.set(k, v);
+    const data = await fetchJson(`/api/utm-breakdown?${params.toString()}`);
+    renderUtmFilters();
+    const tbody = qs('#utm-tbody');
+    if (!data.rows || data.rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-[color:var(--muted)]">No purchases in this window.</td></tr>';
       return;
     }
-
-    if (state.loading) return;
-    state.loading = true;
-    $btnRefresh.classList.add('spinning');
-
-    var offset = append ? state.offset : 0;
-    var url = '/api/events?key=' + encodeURIComponent(key)
-      + '&limit=' + PAGE_SIZE
-      + '&offset=' + offset;
-
-    if (state.filter) url += '&event=' + encodeURIComponent(state.filter);
-
-    fetch(url)
-      .then(function(r) {
-        if (r.status === 401) throw new Error('Invalid access key');
-        if (!r.ok) throw new Error('Request failed (' + r.status + ')');
-        return r.json();
-      })
-      .then(function(data) {
-        if (append) {
-          state.events = state.events.concat(data.events || []);
-        } else {
-          state.events = data.events || [];
+    tbody.innerHTML = data.rows.map(r => `
+      <tr class="row-hover cursor-pointer border-b border-[color:var(--border)]" data-value="${escapeHtml(r.value)}">
+        <td class="py-2 pr-4 font-sans">${escapeHtml(r.value)}</td>
+        <td class="py-2 pr-4 text-right">${fmtInt(r.sales)}</td>
+        <td class="py-2 pr-4 text-right accent-amber">${money(r.revenue)}</td>
+        <td class="py-2 text-right text-[color:var(--dim)]">${money(r.aov)}</td>
+      </tr>
+    `).join('');
+    qsa('#utm-tbody tr[data-value]').forEach(row => {
+      row.addEventListener('click', () => {
+        const v = row.getAttribute('data-value');
+        if (v && v !== '(not set)') {
+          utmFilters[utmDimension] = v;
+          loadUtm();
         }
-        state.summary = data.summary || [];
-        state.recovery = data.recovery || {};
-        state.browsers = data.browsers || [];
-        state.offset = state.events.length;
-        state.expandedRow = null;
-
-        renderCards();
-        renderRecovery();
-        renderTable();
-        showEmpty(state.events.length === 0);
-        $loadMore.style.display = (data.events || []).length >= PAGE_SIZE ? '' : 'none';
-      })
-      .catch(function(err) {
-        showToast(err.message, true);
-      })
-      .finally(function() {
-        state.loading = false;
-        $btnRefresh.classList.remove('spinning');
       });
+    });
   }
 
-  // ── RENDER CARDS ──
-  function renderCards() {
-    var leadRow = state.summary.find(function(s) { return s.event_name === 'Lead'; }) || {};
-    var gestorRow = state.summary.find(function(s) { return s.event_name === 'GestorAtuante'; }) || {};
-
-    var totalConversions = (leadRow.total || 0) + (gestorRow.total || 0);
-    var totalOk = (leadRow.meta_ok || 0) + (gestorRow.meta_ok || 0);
-    var totalFail = (leadRow.meta_fail || 0) + (gestorRow.meta_fail || 0);
-    var totalBots = (leadRow.bots || 0) + (gestorRow.bots || 0);
-
-    document.getElementById('cardTotal').textContent = totalConversions;
-    document.getElementById('cardLead').textContent = leadRow.total || 0;
-    document.getElementById('cardOk').textContent = totalOk;
-    document.getElementById('cardFail').textContent = totalFail;
-    document.getElementById('cardGestor').textContent = gestorRow.total || 0;
-    document.getElementById('cardBots').textContent = totalBots;
-  }
-
-  // ── RENDER RECOVERY ──
-  function renderRecovery() {
-    var r = state.recovery;
-    var panel = document.getElementById('recoveryPanel');
-    var real = r.real_events || 0;
-
-    if (!real) { panel.style.display = 'none'; return; }
-    panel.style.display = '';
-
-    var adblock = r.adblock_recovered || 0;
-    var itp = r.itp_recovered || 0;
-    var adblockPct = real > 0 ? Math.round((adblock / real) * 100) : 0;
-    var itpPct = real > 0 ? Math.round((itp / real) * 100) : 0;
-
-    document.getElementById('recAdblockNum').textContent = adblock;
-    document.getElementById('recAdblockPct').textContent = adblockPct + '% of conversions';
-    document.getElementById('recAdblockBar').style.width = adblockPct + '%';
-    document.getElementById('recAdblockDetail').innerHTML =
-      'Out of <strong>' + real + '</strong> real events, <strong>' + adblock + '</strong> had the pixel blocked by ad blockers. '
-      + 'Without server-side, these conversions would be invisible to Meta.';
-
-    document.getElementById('recItpNum').textContent = itp;
-    document.getElementById('recItpPct').textContent = itpPct + '% of conversions';
-    document.getElementById('recItpBar').style.width = itpPct + '%';
-
-    var fbpPixel = r.fbp_from_pixel || 0;
-    var fbpMw = r.fbp_from_middleware || 0;
-    var fbpSession = r.fbp_from_session || 0;
-    var fbpNone = r.fbp_none || 0;
-
-    document.getElementById('recItpDetail').innerHTML =
-      '_fbp source: <strong>pixel_js ' + fbpPixel + '</strong> · '
-      + '<strong>middleware ' + fbpMw + '</strong> · '
-      + '<strong>session ' + fbpSession + '</strong> · '
-      + '<strong>none ' + fbpNone + '</strong><br>'
-      + 'Middleware HTTP cookies bypass Safari ITP and Firefox ETP 7-day limits.';
-
-    // Browser breakdown
-    var bHtml = '';
-    var browsers = state.browsers || [];
-    for (var i = 0; i < browsers.length; i++) {
-      var b = browsers[i];
-      var bPct = b.total > 0 ? Math.round((b.blocked / b.total) * 100) : 0;
-      var iPct = b.total > 0 ? Math.round((b.itp_recovered / b.total) * 100) : 0;
-      bHtml += '<tr>';
-      bHtml += '<td>' + esc(b.browser || 'Unknown') + '</td>';
-      bHtml += '<td>' + b.total + '</td>';
-      bHtml += '<td><div class="pct-cell">' + b.blocked + ' <span style="color:var(--text-2)">(' + bPct + '%)</span>'
-        + '<div class="mini-bar-wrap"><div class="mini-bar" style="width:' + bPct + '%;background:var(--red)"></div></div>'
-        + '</div></td>';
-      bHtml += '<td><div class="pct-cell">' + b.itp_recovered + ' <span style="color:var(--text-2)">(' + iPct + '%)</span>'
-        + '<div class="mini-bar-wrap"><div class="mini-bar" style="width:' + iPct + '%"></div></div>'
-        + '</div></td>';
-      bHtml += '</tr>';
-    }
-    document.getElementById('browserTbody').innerHTML = bHtml;
-  }
-
-  // ── RENDER TABLE ──
-  function renderTable() {
-    var html = '';
-    for (var i = 0; i < state.events.length; i++) {
-      var ev = state.events[i];
-      var isExpanded = state.expandedRow === i;
-
-      html += '<tr onclick="toggleRow(' + i + ')" class="' + (isExpanded ? 'expanded' : '') + '">';
-      html += '<td class="col-time">' + fmtTime(ev.timestamp) + '</td>';
-      html += '<td class="col-event">' + eventBadge(ev.event_name) + '</td>';
-      html += '<td class="col-email">' + esc(ev.raw_email || '—') + '</td>';
-      html += '<td>' + statusDot(ev.meta_response_ok, ev.sent_to_meta) + '</td>';
-      html += '<td class="hide-mobile">' + pixelStatus(ev.pixel_was_blocked) + '</td>';
-      html += '<td class="hide-mobile" style="font-size:12px;color:var(--text-1)">' + esc(ev.browser || '') + ' / ' + esc(ev.os || '') + (ev.is_mobile ? ' (M)' : '') + '</td>';
-      html += '<td>' + botDot(ev.is_bot, ev.bot_reason) + '</td>';
-      html += '</tr>';
-
-      if (isExpanded) {
-        html += '<tr class="detail-row"><td colspan="7">' + renderDetail(ev) + '</td></tr>';
-      }
-    }
-    $tbody.innerHTML = html;
-  }
-
-  function renderDetail(ev) {
-    var metaBody = ev.meta_response_body || '—';
-    try {
-      var parsed = JSON.parse(metaBody);
-      metaBody = JSON.stringify(parsed, null, 2);
-    } catch(e) {}
-
-    return '<div class="detail-panel">'
-      + '<div class="detail-section">'
-        + '<div class="detail-title">Identifiers</div>'
-        + '<div class="detail-grid">'
-          + kv('event_id', ev.event_id)
-          + kv('session_id', ev.session_id)
-          + kv('email', ev.raw_email)
-        + '</div>'
-      + '</div>'
-      + '<div class="detail-section">'
-        + '<div class="detail-title">Tracking Sources</div>'
-        + '<div class="detail-grid">'
-          + kv('fbp_source', ev.fbp_source)
-          + kv('fbc_source', ev.fbc_source)
-          + kv('fbclid_source', ev.fbclid_source)
-          + kv('pixel_blocked', ev.pixel_was_blocked ? 'Yes' : 'No')
-        + '</div>'
-      + '</div>'
-      + '<div class="detail-section full">'
-        + '<div class="detail-title">Meta CAPI Response</div>'
-        + '<div class="meta-response-box">' + esc(metaBody) + '</div>'
-      + '</div>'
-    + '</div>';
-  }
-
-  // ── HELPERS ──
-  function kv(key, val) {
-    return '<span class="detail-key">' + esc(key) + '</span><span class="detail-val">' + esc(val || '—') + '</span>';
-  }
-
-  function fmtTime(ts) {
-    if (!ts) return '—';
-    var d = new Date(ts * 1000);
-    var pad = function(n) { return n < 10 ? '0' + n : n; };
-    return pad(d.getDate()) + '/' + pad(d.getMonth()+1)
-      + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
-  }
-
-  function eventBadge(name) {
-    var cls = name === 'Lead' ? 'badge-lead'
-      : name === 'GestorAtuante' ? 'badge-gestor'
-      : 'badge-other';
-    return '<span class="badge ' + cls + '">' + esc(name) + '</span>';
-  }
-
-  function statusDot(ok, sent) {
-    if (!sent) return '<div class="status-cell"><span class="dot dot-na"></span><span class="status-label">N/A</span></div>';
-    var cls = ok ? 'dot-ok' : 'dot-fail';
-    var label = ok ? 'OK' : 'FAIL';
-    return '<div class="status-cell"><span class="dot ' + cls + '"></span><span class="status-label">' + label + '</span></div>';
-  }
-
-  function pixelStatus(blocked) {
-    if (blocked) return '<div class="status-cell"><span class="dot dot-warn"></span><span class="status-label">Blocked</span></div>';
-    return '<div class="status-cell"><span class="dot dot-ok"></span><span class="status-label">Active</span></div>';
-  }
-
-  function botDot(isBot, reason) {
-    if (isBot) return '<div class="status-cell"><span class="dot dot-warn"></span><span class="status-label" title="' + esc(reason || '') + '">Bot</span></div>';
-    return '<div class="status-cell"><span class="dot dot-na"></span></div>';
-  }
-
-  function esc(s) {
-    if (!s && s !== 0) return '';
-    var el = document.createElement('span');
-    el.textContent = String(s);
-    return el.innerHTML;
-  }
-
-  function showEmpty(show) {
-    $empty.style.display = show ? '' : 'none';
-  }
-
-  function showToast(msg, isError) {
-    $toast.textContent = msg;
-    $toast.className = 'toast' + (isError ? ' error' : '');
-    setTimeout(function() { $toast.classList.add('show'); }, 10);
-    setTimeout(function() { $toast.classList.remove('show'); }, 3500);
-  }
-
-  // ── ACTIONS ──
-  window.toggleRow = function(idx) {
-    state.expandedRow = (state.expandedRow === idx) ? null : idx;
-    renderTable();
-  };
-
-  window.setFilter = function(btn) {
-    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
-    btn.classList.add('active');
-    state.filter = btn.getAttribute('data-filter');
-    state.offset = 0;
-    fetchData(false);
-  };
-
-  window.manualRefresh = function() {
-    state.offset = 0;
-    pState.offset = 0;
-    state.countdown = REFRESH_INTERVAL;
-    fetchActive(false);
-  };
-
-  window.loadMore = function() {
-    fetchData(true);
-  };
-
-  window.loadMorePurchases = function() {
-    fetchPurchases(true);
-  };
-
-  window.setView = function(view) {
-    if (state.view === view) return;
-    state.view = view;
-    document.getElementById('viewLeadsBtn').classList.toggle('active', view === 'leads');
-    document.getElementById('viewPurchasesBtn').classList.toggle('active', view === 'purchases');
-    document.getElementById('leadsView').style.display = (view === 'leads') ? '' : 'none';
-    document.getElementById('purchasesView').style.display = (view === 'purchases') ? '' : 'none';
-    state.countdown = REFRESH_INTERVAL;
-    fetchActive(false);
-  };
-
-  // ── PURCHASES: FETCH ──
-  function fetchPurchases(append) {
-    var key = $key.value.trim();
-    if (!key) { return; }
-    if (pState.loading) return;
-    pState.loading = true;
-    $btnRefresh.classList.add('spinning');
-
-    var offset = append ? pState.offset : 0;
-    var url = '/api/purchases?key=' + encodeURIComponent(key)
-      + '&limit=' + PURCHASE_PAGE_SIZE
-      + '&offset=' + offset;
-
-    fetch(url)
-      .then(function(r) {
-        if (r.status === 401) throw new Error('Invalid access key');
-        if (!r.ok) throw new Error('Request failed (' + r.status + ')');
-        return r.json();
-      })
-      .then(function(data) {
-        var rows = data.rows || [];
-        if (append) {
-          pState.rows = pState.rows.concat(rows);
-        } else {
-          pState.rows = rows;
-          pState.expandedRow = null;
-        }
-        pState.summary = data.summary || {};
-        pState.offset = pState.rows.length;
-
-        renderPurchaseCards();
-        renderPurchaseTable();
-        document.getElementById('pEmptyState').style.display = pState.rows.length === 0 ? '' : 'none';
-        document.getElementById('pLoadMoreWrap').style.display = rows.length >= PURCHASE_PAGE_SIZE ? '' : 'none';
-      })
-      .catch(function(err) { showToast(err.message, true); })
-      .finally(function() {
-        pState.loading = false;
-        $btnRefresh.classList.remove('spinning');
+  function renderUtmFilters() {
+    const container = qs('#utm-filters');
+    const entries = Object.entries(utmFilters);
+    if (entries.length === 0) { container.innerHTML = ''; return; }
+    container.innerHTML = entries.map(([k, v]) => `
+      <button class="inline-flex items-center gap-1 bg-[color:var(--text)] text-white rounded-full px-3 py-1 text-xs" data-filter-key="${k}">
+        <span class="text-[color:var(--muted)]">${k}:</span> ${escapeHtml(v)} <span class="ml-1">&times;</span>
+      </button>
+    `).join('');
+    qsa('#utm-filters button[data-filter-key]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        delete utmFilters[btn.getAttribute('data-filter-key')];
+        loadUtm();
       });
+    });
   }
 
-  function renderPurchaseCards() {
-    var s = pState.summary || {};
-    document.getElementById('pCardTotal').textContent   = s.total || 0;
-    document.getElementById('pCardMeta').textContent    = s.meta_ok || 0;
-    document.getElementById('pCardGa4').textContent     = s.ga4_ok || 0;
-    document.getElementById('pCardGads').textContent    = s.gads_ok || 0;
-    document.getElementById('pCardSkipped').textContent = s.gads_skipped || 0;
-  }
-
-  function renderPurchaseTable() {
-    var html = '';
-    var rows = pState.rows;
-    for (var i = 0; i < rows.length; i++) {
-      var p = rows[i];
-      var isExpanded = pState.expandedRow === i;
-      var clickId = p.gclid || p.wbraid || p.gbraid || '';
-
-      html += '<tr onclick="togglePurchaseRow(' + i + ')" class="' + (isExpanded ? 'expanded' : '') + '">';
-      html += '<td class="col-time">' + fmtTime(p.created_at) + '</td>';
-      html += '<td class="col-email">' + esc(p.raw_email || '—') + '</td>';
-      html += '<td class="col-value">' + fmtValue(p.value, p.currency) + '</td>';
-      html += '<td class="hide-mobile col-email">' + esc(p.product_name || p.product_id || '—') + '</td>';
-      html += '<td>' + integrationPill('meta', p) + '</td>';
-      html += '<td>' + integrationPill('ga4', p) + '</td>';
-      html += '<td>' + integrationPill('gads', p) + '</td>';
-      html += '<td class="hide-mobile"><span class="clickid-snippet" title="' + esc(clickId) + '">'
-            + (clickId ? esc(clickId.slice(0, 18) + (clickId.length > 18 ? '…' : '')) : '—')
-            + '</span></td>';
-      html += '</tr>';
-
-      if (isExpanded) {
-        html += '<tr class="detail-row"><td colspan="8">' + renderPurchaseDetail(p) + '</td></tr>';
-      }
+  async function loadLeads(days) {
+    const data = await fetchJson(`/api/leads?days=${days}&limit=50`);
+    qs('#kpi-leads').textContent = fmtInt((data.leads || []).length);
+    const tbody = qs('#leads-tbody');
+    if (!data.leads || data.leads.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-[color:var(--muted)]">No leads in this window.</td></tr>';
+      return;
     }
-    document.getElementById('pTbody').innerHTML = html;
+    tbody.innerHTML = data.leads.map(l => `
+      <tr class="row-hover border-b border-[color:var(--border)]">
+        <td class="py-2 pr-4 text-[color:var(--dim)]">${fmtDate(l.timestamp)}</td>
+        <td class="py-2 pr-4 mono">${escapeHtml(l.raw_email || '—')}</td>
+        <td class="py-2 pr-4">${escapeHtml(l.utm_source || '(direct)')}</td>
+        <td class="py-2 pr-4 text-[color:var(--dim)]">${escapeHtml(l.utm_campaign || '—')}</td>
+        <td class="py-2 pr-4 text-[color:var(--dim)]">${escapeHtml(l.utm_medium || '—')}</td>
+        <td class="py-2 pr-4 text-center">${l.meta_response_ok ? '<span class="accent-green">✓</span>' : '<span class="accent-red">✕</span>'}</td>
+        <td class="py-2 text-center">${l.ga4_response_ok ? '<span class="accent-green">✓</span>' : '<span class="accent-red">✕</span>'}</td>
+      </tr>
+    `).join('');
   }
 
-  function integrationPill(which, p) {
-    var status, ok, body;
-    if (which === 'meta')      { status = p.meta_status_code;       ok = p.meta_response_ok;       body = p.meta_response_body; }
-    else if (which === 'ga4')  { status = p.ga4_status_code;        ok = p.ga4_response_ok;        body = p.ga4_response_body; }
-    else                       { status = p.google_ads_status_code; ok = p.google_ads_response_ok; body = p.google_ads_response_body; }
-
-    var isSkipped = body && typeof body === 'string' && body.indexOf('skipped:') === 0;
-    var isError = body && typeof body === 'string' && body.indexOf('Fetch error:') === 0;
-
-    if (isSkipped) return '<span class="pill pill-skip">SKIP</span>';
-    if (isError)   return '<span class="pill pill-fail">ERR</span>';
-    if (!status)   return '<span class="pill pill-na">—</span>';
-    if (ok)        return '<span class="pill pill-ok">' + status + ' ✓</span>';
-    return '<span class="pill pill-fail">' + status + ' ✗</span>';
+  async function loadHealth() {
+    const data = await fetchJson(`/api/events?limit=1`);
+    const rec = data.recovery || {};
+    qs('#health-real').textContent    = fmtInt(rec.real_events);
+    qs('#health-itp').textContent     = fmtInt(rec.itp_recovered);
+    qs('#health-adblock').textContent = fmtInt(rec.adblock_recovered);
+    qs('#health-bots').textContent    = fmtInt((rec.total_events || 0) - (rec.real_events || 0));
+    const fbp = qs('#health-fbp');
+    fbp.innerHTML = [
+      ['pixel_js',         rec.fbp_from_pixel,      'blue'],
+      ['middleware_http',  rec.fbp_from_middleware, 'green'],
+      ['tracker_http',     rec.fbp_from_session,    'amber'],
+      ['none',             rec.fbp_none,            'red'],
+    ].map(([label, val, color]) => `
+      <span class="border border-[color:var(--border)] rounded-lg px-2 py-1">
+        <span class="accent-${color} mono font-semibold">${fmtInt(val)}</span>
+        <span class="text-[color:var(--muted)] ml-1">${label}</span>
+      </span>
+    `).join('');
   }
 
-  function renderPurchaseDetail(p) {
-    return '<div class="detail-panel">'
-      + '<div class="detail-section full">'
-        + '<div class="detail-title">Purchase Context</div>'
-        + '<div class="detail-grid">'
-          + kv('transaction_id', p.transaction_id)
-          + kv('event_id',       p.event_id)
-          + kv('trk',            p.trk)
-          + kv('product',        (p.product_name || '') + ' (' + (p.product_id || '—') + ')')
-          + kv('value',          fmtValue(p.value, p.currency))
-          + kv('email',          p.raw_email)
-          + kv('gclid',          p.gclid || '—')
-          + kv('wbraid',         p.wbraid || '—')
-          + kv('gbraid',         p.gbraid || '—')
-          + kv('utm_source',     p.utm_source || '—')
-          + kv('utm_campaign',   p.utm_campaign || '—')
-          + kv('event_time',     fmtTime(p.event_time))
-          + kv('created_at',     fmtTime(p.created_at))
-        + '</div>'
-      + '</div>'
-      + '<div class="integration-grid">'
-        + integrationCard('Meta CAPI', p.meta_status_code, p.meta_response_ok, p.meta_payload_sent, p.meta_response_body, false)
-        + integrationCard('GA4 MP',    p.ga4_status_code,  p.ga4_response_ok,  p.ga4_payload_sent,  p.ga4_response_body,  false)
-        + integrationCard('Google Ads', p.google_ads_status_code, p.google_ads_response_ok, p.google_ads_payload_sent, p.google_ads_response_body, true)
-      + '</div>'
-    + '</div>';
+  // -------- Charts --------
+  function renderRevenueChart(series) {
+    const ctx = qs('#chart-revenue').getContext('2d');
+    if (revenueChart) revenueChart.destroy();
+    revenueChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: series.map(r => r.date),
+        datasets: [{
+          label: 'Revenue',
+          data: series.map(r => r.revenue),
+          borderColor: 'rgb(37, 99, 235)',
+          backgroundColor: 'rgba(37, 99, 235, 0.08)',
+          fill: true,
+          tension: 0.35,
+          pointRadius: 0,
+          borderWidth: 2,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#a1a1aa', font: { size: 11 } } },
+          y: { grid: { color: '#f1f1f3' }, ticks: { color: '#a1a1aa', font: { size: 11 } } },
+        },
+      },
+    });
   }
 
-  function integrationCard(name, status, ok, payload, body, isGoogleAds) {
-    var bodyStr = body == null ? '' : String(body);
-    var isSkipped = bodyStr.indexOf('skipped:') === 0;
-    var isError = bodyStr.indexOf('Fetch error:') === 0;
-
-    var pillHtml;
-    if (isSkipped)      pillHtml = '<span class="pill pill-skip">SKIP</span>';
-    else if (isError)   pillHtml = '<span class="pill pill-fail">ERROR</span>';
-    else if (!status)   pillHtml = '<span class="pill pill-na">—</span>';
-    else if (ok)        pillHtml = '<span class="pill pill-ok">' + status + ' ✓</span>';
-    else                pillHtml = '<span class="pill pill-fail">' + status + ' ✗</span>';
-
-    // Pretty-print payload + response (best-effort JSON)
-    var payloadPretty = prettyJson(payload);
-    var bodyPretty = prettyJson(body);
-
-    // Google Ads partialFailureError surfacing
-    var partialBanner = '';
-    if (isGoogleAds && body && !isSkipped && !isError) {
-      try {
-        var parsed = JSON.parse(body);
-        if (parsed && parsed.partialFailureError) {
-          partialBanner = '<div class="partial-failure-banner">'
-            + 'partialFailureError: ' + esc(parsed.partialFailureError.message || 'see response')
-            + '</div>';
-        }
-      } catch (_) { /* non-JSON */ }
+  function renderProductsChart(series) {
+    const ctx = qs('#chart-products').getContext('2d');
+    if (productsChart) productsChart.destroy();
+    // Group by product_name
+    const byProduct = {};
+    const dates = new Set();
+    for (const row of series) {
+      if (!byProduct[row.product_name]) byProduct[row.product_name] = {};
+      byProduct[row.product_name][row.date] = Number(row.sales || 0);
+      dates.add(row.date);
     }
-
-    var payloadHtml = payload
-      ? '<div class="json-box">' + esc(payloadPretty) + '</div>'
-      : '<div class="json-box" style="color:var(--text-2)">— not built (' + (isSkipped ? 'skipped' : 'no payload') + ')</div>';
-
-    var bodyHtml = body
-      ? '<div class="json-box">' + esc(bodyPretty) + '</div>'
-      : '<div class="json-box" style="color:var(--text-2)">— no response</div>';
-
-    return '<div class="integration-card">'
-      + '<div class="integration-head">'
-        + '<span class="integration-name">' + esc(name) + '</span>'
-        + pillHtml
-      + '</div>'
-      + '<div>'
-        + '<div class="integration-meta">Payload sent</div>'
-        + payloadHtml
-      + '</div>'
-      + '<div>'
-        + '<div class="integration-meta">Response</div>'
-        + partialBanner
-        + bodyHtml
-      + '</div>'
-    + '</div>';
+    const sortedDates = [...dates].sort();
+    const palette = ['rgb(37, 99, 235)', 'rgb(22, 163, 74)', 'rgb(217, 119, 6)', 'rgb(220, 38, 38)', 'rgb(124, 58, 237)'];
+    const datasets = Object.entries(byProduct).slice(0, 5).map(([name, bydate], i) => ({
+      label: name,
+      data: sortedDates.map(d => bydate[d] || 0),
+      borderColor: palette[i % palette.length],
+      backgroundColor: palette[i % palette.length] + '20',
+      tension: 0.35,
+      pointRadius: 0,
+      borderWidth: 2,
+    }));
+    productsChart = new Chart(ctx, {
+      type: 'line',
+      data: { labels: sortedDates, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#a1a1aa', font: { size: 11 } } },
+          y: { grid: { color: '#f1f1f3' }, ticks: { color: '#a1a1aa', font: { size: 11 }, precision: 0 } },
+        },
+      },
+    });
   }
 
-  function prettyJson(s) {
-    if (s == null || s === '') return '';
-    try {
-      return JSON.stringify(JSON.parse(s), null, 2);
-    } catch (_) {
-      return String(s);
-    }
+  // -------- Load orchestration --------
+  async function loadAll(days) {
+    currentDays = days;
+    await Promise.all([
+      loadRevenue(days),
+      loadProducts(days),
+      loadAttribution(days),
+      loadUtm(),
+      loadLeads(days),
+      loadHealth(),
+    ]);
   }
 
-  function fmtValue(v, currency) {
-    if (v == null) return '—';
-    var n = Number(v);
-    if (isNaN(n)) return String(v);
-    return (currency || 'BRL') + ' ' + n.toFixed(2);
-  }
+  // -------- UI bindings --------
+  qsa('#range-picker .range-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      qsa('#range-picker .range-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadAll(parseInt(btn.getAttribute('data-days'), 10));
+    });
+  });
+  qsa('#utm-tabs .dash-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      qsa('#utm-tabs .dash-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      utmDimension = tab.getAttribute('data-dim');
+      utmFilters = {};
+      loadUtm();
+    });
+  });
 
-  window.togglePurchaseRow = function(idx) {
-    pState.expandedRow = (pState.expandedRow === idx) ? null : idx;
-    renderPurchaseTable();
-  };
-
-  // ── AUTO-REFRESH COUNTDOWN ──
-  function startCountdown() {
-    setInterval(function() {
-      state.countdown--;
-      if (state.countdown <= 0) {
-        state.countdown = REFRESH_INTERVAL;
-        state.offset = 0;
-        pState.offset = 0;
-        fetchActive(false);
-      }
-      $countdown.textContent = state.countdown + 's';
-    }, 1000);
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 })();
 </script>
