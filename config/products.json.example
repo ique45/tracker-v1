@@ -1,0 +1,30 @@
+{
+  "_comment": "Per-product configuration. Copy this file to config/products.json (which is gitignored) and edit it with your own product IDs. Each top-level key is a platform name that matches a file in functions/webhook/. Each product entry is keyed by the platform's product ID and holds the optional integrations' tag/action IDs. The webhook handler looks up the product at runtime and skips integrations whose IDs are missing.",
+
+  "eduzz": {
+    "__REPLACE_ME_PRODUCT_ID__": {
+      "name": "Example product name",
+      "enchargeTag": "",
+      "manychatTagId": "",
+      "googleAdsConversionActionId": ""
+    }
+  },
+
+  "hotmart": {
+    "__REPLACE_ME_PRODUCT_ID__": {
+      "name": "Example product name",
+      "enchargeTag": "",
+      "manychatTagId": "",
+      "googleAdsConversionActionId": ""
+    }
+  },
+
+  "kiwify": {
+    "__REPLACE_ME_PRODUCT_ID__": {
+      "name": "Example product name",
+      "enchargeTag": "",
+      "manychatTagId": "",
+      "googleAdsConversionActionId": ""
+    }
+  }
+}
