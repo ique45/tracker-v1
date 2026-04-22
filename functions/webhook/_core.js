@@ -112,18 +112,38 @@ export async function processPurchase({ parsed, env, context }) {
 // HANDLER: Tracking — Meta CAPI + GA4 + Google Ads (needs checkoutData)
 // -----------------------------------------------------------------------------
 async function handleTracking({ parsed, eventId, eventTime, env }) {
-  const { email, name, phone, value, currency, transactionId, checkoutData, productConfig } = parsed;
+  const { email, name, phone, value, currency, transactionId, productId, productName, items, checkoutData, productConfig } = parsed;
 
   const hashedEm = await sha256(email);
   const nameParts = splitName(name);
   const hashedFn = await sha256(normalizeName(nameParts.fn));
   const hashedLn = await sha256(normalizeName(nameParts.ln));
-  const hashedPh = await sha256(normalizePhone(phone));
+  const hashedPh = await sha256(normalizePhone(phone, env.DEFAULT_COUNTRY_CODE));
   const hashedExternalId = await sha256(checkoutData.external_id || '');
 
+  // Build a single item list both Meta and GA4 consume. Adapters should
+  // always ship items[], but if an adapter hits an edge case and leaves
+  // it empty we synthesize a single-item fallback from the top-level
+  // product fields so `contents`/`items` stay non-empty for ROAS.
+  const itemList = (Array.isArray(items) && items.length)
+    ? items
+    : [{ productId: productId || '', name: productName || '', price: { value, currency } }];
+  const contents = itemList.map(it => ({
+    id: String(it.productId || ''),
+    quantity: parseInt(it.quantity, 10) || 1,
+    item_price: parseFloat(it?.price?.value) || 0,
+  }));
+  const ga4Items = itemList.map(it => ({
+    item_id: String(it.productId || ''),
+    item_name: it.name || '',
+    price: parseFloat(it?.price?.value) || 0,
+    quantity: parseInt(it.quantity, 10) || 1,
+    currency: it?.price?.currency || currency,
+  }));
+
   const [metaResult, ga4Result, googleAdsResult] = await Promise.allSettled([
-    sendToMeta({ checkoutData, hashedEm, hashedFn, hashedLn, hashedPh, hashedExternalId, eventId, eventTime, value, currency, env }),
-    sendToGA4({ checkoutData, hashedEm, transactionId, value, currency, env }),
+    sendToMeta({ checkoutData, hashedEm, hashedFn, hashedLn, hashedPh, hashedExternalId, eventId, eventTime, value, currency, productName, contents, env }),
+    sendToGA4({ checkoutData, hashedEm, transactionId, value, currency, ga4Items, env }),
     sendToGoogleAds({ checkoutData, productConfig, hashedEm, transactionId, value, currency, eventTime, env }),
   ]);
 
@@ -241,7 +261,7 @@ async function handleManyChat({ parsed, env }) {
     return { statusCode: 0, responseOk: 0, responseBody: 'No manychatTagId for this product' };
   }
   const nameParts = splitName(name);
-  const manychatPhone = formatPhoneForManyChat(phone);
+  const manychatPhone = formatPhoneForManyChat(phone, env.DEFAULT_COUNTRY_CODE);
 
   if (!manychatPhone) {
     return { statusCode: 0, responseOk: 0, responseBody: 'No valid phone for ManyChat' };
@@ -353,8 +373,16 @@ async function handlePurchaseLog({ parsed, eventId, eventTime, resultMap, env })
       tracking.ga4StatusCode || 0, tracking.ga4ResponseOk || 0, tracking.ga4ResponseBody || '', tracking.ga4PayloadSent ?? null,
       tracking.googleAdsStatusCode || 0, tracking.googleAdsResponseOk || 0, tracking.googleAdsResponseBody || '', tracking.googleAdsPayloadSent ?? null,
       checkoutData.gclid || '', checkoutData.gbraid || '', checkoutData.wbraid || '',
-      platformUtm.utm_source || '', platformUtm.utm_medium || '',
-      platformUtm.utm_campaign || '', platformUtm.utm_content || '', platformUtm.utm_term || '',
+      // UTMs prefer what the sales platform echoes back in the webhook
+      // (platformUtm, authoritative when present), then fall back to what
+      // the sales page persisted to checkout_sessions (checkoutData).
+      // Platforms like Hotmart that don't carry UTMs natively rely on
+      // the fallback + the sck-merge recovery in their adapter.
+      platformUtm.utm_source || checkoutData.utm_source || '',
+      platformUtm.utm_medium || checkoutData.utm_medium || '',
+      platformUtm.utm_campaign || checkoutData.utm_campaign || '',
+      platformUtm.utm_content || checkoutData.utm_content || '',
+      platformUtm.utm_term || checkoutData.utm_term || '',
       productId || '', productName || '',
       encharge.statusCode || 0, encharge.responseOk || 0, encharge.responseBody || '',
       manychat.statusCode || 0, manychat.responseOk || 0, manychat.responseBody || '',
@@ -394,11 +422,11 @@ async function handlePurchaseLog({ parsed, eventId, eventTime, resultMap, env })
       parseFloat(item?.price?.value) || 0,
       item?.price?.currency || currency || 'BRL',
       createdAt,
-      platformUtm.utm_source || null,
-      platformUtm.utm_campaign || null,
-      platformUtm.utm_medium || null,
-      platformUtm.utm_content || null,
-      platformUtm.utm_term || null,
+      platformUtm.utm_source || checkoutData.utm_source || null,
+      platformUtm.utm_campaign || checkoutData.utm_campaign || null,
+      platformUtm.utm_medium || checkoutData.utm_medium || null,
+      platformUtm.utm_content || checkoutData.utm_content || null,
+      platformUtm.utm_term || checkoutData.utm_term || null,
     ));
 
     await env.DB.batch(batch);
@@ -420,7 +448,7 @@ async function handlePurchaseLog({ parsed, eventId, eventTime, resultMap, env })
 // -----------------------------------------------------------------------------
 // META CAPI — Purchase with full navigation data from D1
 // -----------------------------------------------------------------------------
-async function sendToMeta({ checkoutData, hashedEm, hashedFn, hashedLn, hashedPh, hashedExternalId, eventId, eventTime, value, currency, env }) {
+async function sendToMeta({ checkoutData, hashedEm, hashedFn, hashedLn, hashedPh, hashedExternalId, eventId, eventTime, value, currency, productName, contents, env }) {
   if (!env.META_PIXEL_ID || !env.META_ACCESS_TOKEN) {
     return { skipped: 'missing meta env', payload: null, response: null };
   }
@@ -438,6 +466,23 @@ async function sendToMeta({ checkoutData, hashedEm, hashedFn, hashedLn, hashedPh
   if (checkoutData.fbp) metaUserData.fbp = checkoutData.fbp;
   if (checkoutData.fbc) metaUserData.fbc = checkoutData.fbc;
 
+  // Purchase custom_data per Meta spec: currency + value are required;
+  // content_type + content_ids + contents + content_name + num_items are
+  // strongly recommended so catalog attribution and product-level ROAS
+  // work in Ads Manager.
+  const customData = {
+    value: parseFloat(value) || 0,
+    currency: currency,
+    content_type: 'product',
+  };
+  if (contents && contents.length) {
+    customData.contents = contents;
+    const ids = contents.map(c => c.id).filter(Boolean);
+    if (ids.length) customData.content_ids = ids;
+    customData.num_items = contents.length;
+  }
+  if (productName) customData.content_name = productName;
+
   const metaPayload = {
     data: [{
       event_name: 'Purchase',
@@ -446,10 +491,7 @@ async function sendToMeta({ checkoutData, hashedEm, hashedFn, hashedLn, hashedPh
       event_source_url: checkoutData.event_source_url || '',
       action_source: 'website',
       user_data: metaUserData,
-      custom_data: {
-        value: parseFloat(value) || 0,
-        currency: currency,
-      },
+      custom_data: customData,
     }],
   };
 
@@ -459,7 +501,7 @@ async function sendToMeta({ checkoutData, hashedEm, hashedFn, hashedLn, hashedPh
 
   const payloadJson = JSON.stringify(metaPayload);
   const response = await fetch(
-    `https://graph.facebook.com/v22.0/${env.META_PIXEL_ID}/events?access_token=${env.META_ACCESS_TOKEN}`,
+    `https://graph.facebook.com/v25.0/${env.META_PIXEL_ID}/events?access_token=${env.META_ACCESS_TOKEN}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -472,23 +514,26 @@ async function sendToMeta({ checkoutData, hashedEm, hashedFn, hashedLn, hashedPh
 // -----------------------------------------------------------------------------
 // GA4 Measurement Protocol — Purchase
 // -----------------------------------------------------------------------------
-async function sendToGA4({ checkoutData, hashedEm, transactionId, value, currency, env }) {
+async function sendToGA4({ checkoutData, hashedEm, transactionId, value, currency, ga4Items, env }) {
   if (!env.GA4_MEASUREMENT_ID || !env.GA4_API_SECRET) {
     return { skipped: 'missing ga4 env', payload: null, response: null };
   }
 
   const gaClientId = checkoutData.ga_client_id || `${Date.now()}.${Math.floor(Math.random() * 1000000000)}`;
 
+  const purchaseParams = {
+    transaction_id: transactionId,
+    value: parseFloat(value) || 0,
+    currency: currency,
+    engagement_time_msec: 100,
+  };
+  if (ga4Items && ga4Items.length) purchaseParams.items = ga4Items;
+
   const ga4Payload = {
     client_id: gaClientId,
     events: [{
       name: 'purchase',
-      params: {
-        transaction_id: transactionId,
-        value: parseFloat(value) || 0,
-        currency: currency,
-        engagement_time_msec: 100,
-      },
+      params: purchaseParams,
     }],
   };
 
@@ -649,15 +694,38 @@ async function sha256(value) {
     .join('');
 }
 
-function normalizePhone(ph) {
+// Meta CAPI expects phone digits INCLUDING country code + area code
+// (ex: `16505554444` or `5511987654321`). Purchase webhooks from sales
+// platforms sometimes ship the number already prefixed, sometimes not;
+// detect and prepend as needed. `countryCode` defaults to 55 (Brazil);
+// recipients elsewhere set `env.DEFAULT_COUNTRY_CODE` — see the
+// "decisions the recipient must make" table in CLAUDE.md.
+function normalizePhone(ph, countryCode) {
   if (!ph) return '';
-  const digits = ph.replace(/\D/g, '');
-  return digits.replace(/^0+/, '') || '';
+  const cc = String(countryCode || '55');
+  const digits = ph.replace(/\D/g, '').replace(/^0+/, '');
+  if (!digits) return '';
+  // Already starts with the configured country code at a plausible
+  // total length → leave as-is.
+  if (digits.startsWith(cc) && digits.length >= cc.length + 8 && digits.length <= cc.length + 11) {
+    return digits;
+  }
+  // Plausibly a locally-formatted number (no country code yet) → prepend.
+  if (digits.length >= 8 && digits.length <= 11) {
+    return cc + digits;
+  }
+  // Any other length (likely an already-international foreign number
+  // whose country code isn't our default) → leave untouched.
+  return digits;
 }
 
+// Meta Advanced Matching spec for fn/ln is lowercase only — do NOT strip
+// punctuation/accents. Meta's graph preserves apostrophes, hyphens, and
+// diacritics; stripping them breaks hash matches for names like
+// "O'Brien", "Garcia-Rodriguez", "João".
 function normalizeName(name) {
   if (!name) return '';
-  return name.trim().toLowerCase().replace(/[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/g, '');
+  return name.trim().toLowerCase();
 }
 
 function splitName(fullName) {
@@ -665,18 +733,9 @@ function splitName(fullName) {
   return { fn: parts[0] || '', ln: parts.slice(1).join(' ') || '' };
 }
 
-function formatPhoneForManyChat(phone) {
-  if (!phone) return '';
-  const digits = phone.replace(/\D/g, '');
-  if (!digits) return '';
-  // Brazilian numbers: with country code (55) = 12-13 digits
-  if (digits.startsWith('55') && digits.length >= 12 && digits.length <= 13) {
-    return digits;
-  }
-  // Without country code: DDD (2) + number (8-9) = 10-11 digits → prepend 55
-  if (digits.length >= 10 && digits.length <= 11) {
-    return '55' + digits;
-  }
-  // Other locales: return as-is, let ManyChat validate
-  return digits;
+// ManyChat's WhatsApp API accepts the same "digits + country code" format
+// Meta CAPI requires, so we reuse normalizePhone. Kept as a named helper
+// so the intent at the call site stays explicit.
+function formatPhoneForManyChat(phone, countryCode) {
+  return normalizePhone(phone, countryCode);
 }

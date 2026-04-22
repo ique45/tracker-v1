@@ -106,6 +106,9 @@ Ask the recipient: "The stack has several optional integrations. I'll list them 
 **Timezone for Google Ads conversions** — defaults to São Paulo (`-03:00`):
 - `TIMEZONE_OFFSET` — ISO offset like `-05:00`, `+00:00`, etc. Must match the recipient's Google Ads account timezone or conversions get rejected.
 
+**Default phone country code** — defaults to Brazil (`55`):
+- `DEFAULT_COUNTRY_CODE` — the recipient's ISO calling code without any `+` (e.g. `1` for US/Canada, `44` for UK, `351` for Portugal, `34` for Spain). Meta CAPI requires phone numbers to include country code + area code before hashing, so we prepend this to any lead-form submission that looks locally formatted. Skip only if the recipient is in Brazil. Tell the recipient: "If your audience is mostly in one country, set this to that country's calling code."
+
 **Google Ads conversion uploads** (all six required together — if any one is missing, Google Ads integration silently skips):
 - `GOOGLE_ADS_CLIENT_ID`
 - `GOOGLE_ADS_CLIENT_SECRET`

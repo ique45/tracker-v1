@@ -1,5 +1,6 @@
 # Secrets and local config — recipients must never commit these
 wrangler.toml
+wrangler.toml.audit
 .dev.vars
 .env
 .env.*

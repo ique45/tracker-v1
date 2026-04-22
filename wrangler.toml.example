@@ -27,6 +27,9 @@ database_id = "__REPLACE_ME_DB_ID__"
 # Optional secrets (leave unset to skip that integration):
 #   META_TEST_EVENT_CODE    Meta test-events code for debugging
 #   TIMEZONE_OFFSET         ISO offset like "-03:00" for Google Ads timestamps
+#   DEFAULT_COUNTRY_CODE    Calling code prepended to local-format phones
+#                           before hashing for Meta CAPI (default "55" Brazil;
+#                           set to "1" US/CA, "44" UK, "351" PT, etc.)
 #   GOOGLE_ADS_CLIENT_ID
 #   GOOGLE_ADS_CLIENT_SECRET
 #   GOOGLE_ADS_REFRESH_TOKEN
@@ -35,7 +38,7 @@ database_id = "__REPLACE_ME_DB_ID__"
 #   GOOGLE_ADS_LOGIN_CUSTOMER_ID
 #   ENCHARGE_API_KEY
 #   MANYCHAT_KEY
-#   EDUZZ_WEBHOOK_SECRET    HMAC secret from Eduzz dashboard (per recipient)
-#   HOTMART_WEBHOOK_SECRET  hottok from Hotmart dashboard
-#   KIWIFY_WEBHOOK_SECRET   Kiwify webhook secret
+#   EDUZZ_WEBHOOK_SLUG      UUID v4 in URL path (generate per recipient; see deploy-stack)
+#   HOTMART_WEBHOOK_SLUG    same pattern
+#   KIWIFY_WEBHOOK_SLUG     same pattern
 # ---------------------------------------------------------------------------

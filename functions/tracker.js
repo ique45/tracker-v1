@@ -67,28 +67,61 @@ export async function onRequestPost(context) {
         .join('');
     }
 
-    function normalizePhone(ph) {
+    // Meta CAPI expects phone digits INCLUDING country code + area code
+    // (ex: `16505554444` or `5511987654321`). Users typing their own
+    // number into a lead form almost never include the country code, so
+    // we prepend a default. `countryCode` defaults to 55 (Brazil);
+    // recipients elsewhere set `env.DEFAULT_COUNTRY_CODE` — see the
+    // "decisions the recipient must make" table in CLAUDE.md.
+    //
+    // Detection is length-based and best-effort. A recipient whose
+    // audience mixes country codes (rare for the target audience) gets
+    // marginal mismatches; fixing that requires a real phone-parsing
+    // library which is too heavy for an edge worker.
+    function normalizePhone(ph, countryCode) {
       if (!ph) return '';
-      const digits = ph.replace(/\D/g, '');
-      return digits.replace(/^0+/, '') || '';
+      const cc = String(countryCode || '55');
+      const digits = ph.replace(/\D/g, '').replace(/^0+/, '');
+      if (!digits) return '';
+      // Already starts with the configured country code at a plausible
+      // total length → leave as-is.
+      if (digits.startsWith(cc) && digits.length >= cc.length + 8 && digits.length <= cc.length + 11) {
+        return digits;
+      }
+      // Plausibly a locally-formatted number (no country code yet) → prepend.
+      if (digits.length >= 8 && digits.length <= 11) {
+        return cc + digits;
+      }
+      // Any other length (likely an already-international foreign number
+      // whose country code isn't our default) → leave untouched.
+      return digits;
     }
 
+    // Meta Advanced Matching spec for fn/ln is lowercase only — do NOT
+    // strip punctuation/accents. Meta's graph preserves apostrophes,
+    // hyphens, and diacritics; stripping them breaks hash matches for
+    // names like "O'Brien", "Garcia-Rodriguez", "João".
     function normalizeName(name) {
       if (!name) return '';
-      return name.trim().toLowerCase().replace(/[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/g, '');
+      return name.trim().toLowerCase();
     }
 
     const hashedEm = await sha256(userData.em);
     const hashedFn = await sha256(normalizeName(userData.fn));
     const hashedLn = await sha256(normalizeName(userData.ln));
-    const hashedPh = await sha256(normalizePhone(userData.ph));
+    const hashedPh = await sha256(normalizePhone(userData.ph, env.DEFAULT_COUNTRY_CODE));
     const hashedExternalId = await sha256(externalId);
 
     // --- Bot detection ---
     const { isBot, botReason } = detectBot(userAgent);
 
-    // --- Fan out to all platforms ---
-    const results = await Promise.allSettled([
+    // --- Fan out to ad platforms (skipped for bot UAs) ---
+    // Bots still get logged to event_log so the dashboard's bot-filter
+    // tracking-health metric stays accurate; only the outbound CAPI /
+    // GA4 fires are suppressed. Without this gate, every link-unfurl
+    // crawl (WhatsApp preview, Slackbot, facebookexternalhit, etc.)
+    // would burn a Meta CAPI event and pollute the Pixel.
+    const results = isBot ? [] : await Promise.allSettled([
       sendToMeta({ body, clientIp, userAgent, fbp, fbc, hashedEm, hashedFn, hashedLn, hashedPh, hashedExternalId, sessionData, env }),
       sendToGA4({ body, gaClientId, gaSessionId, hashedEm, env }),
     ]);
@@ -139,8 +172,8 @@ export async function onRequestPost(context) {
               pixelWasBlocked, fbpSource, fbcSource, fbclidSource,
               gaCookiePresent, gaClientIdFallback, fbpSource === 'middleware_http' ? 1 : 0,
               isBot ? 1 : 0, botReason, body.consent_status || 'unknown',
-              1, metaResponseOk,
-              1, results[1]?.status === 'fulfilled' ? 1 : 0,
+              isBot ? 0 : 1, metaResponseOk,
+              isBot ? 0 : 1, results[1]?.status === 'fulfilled' ? 1 : 0,
               hashedEm ? 1 : 0, hashedPh ? 1 : 0, (hashedFn || hashedLn) ? 1 : 0,
               metaResponseBody, rawEmail
             ).run();
@@ -198,7 +231,7 @@ async function sendToMeta({ body, clientIp, userAgent, fbp, fbc, hashedEm, hashe
     payload.test_event_code = env.META_TEST_EVENT_CODE;
   }
 
-  return fetch(`https://graph.facebook.com/v22.0/${env.META_PIXEL_ID}/events?access_token=${env.META_ACCESS_TOKEN}`, {
+  return fetch(`https://graph.facebook.com/v25.0/${env.META_PIXEL_ID}/events?access_token=${env.META_ACCESS_TOKEN}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

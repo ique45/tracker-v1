@@ -7,9 +7,16 @@
 // Platform specifics (confirmed against a real PURCHASE_APPROVED webhook):
 //   - Everything is nested under `rawPayload.data`.
 //   - `trk` arrives as `data.purchase.origin.xcod`.
-//     NOTE: `data.purchase.origin.sck` is a traffic-source enum
-//           (e.g. "HOTMART_PRODUCT_PAGE"), NOT a tracking UUID — never use it
-//           as a fallback for `xcod`.
+//   - `data.purchase.origin.sck` has TWO possible shapes:
+//       (a) a pipe-joined UTM bundle emitted by our sales page:
+//           `<utm_source>|<utm_medium>|<utm_campaign>|<utm_content>|<utm_term>`
+//           with each part URL-encoded. Hotmart does not forward `utm_*`
+//           URL params into the webhook body, so this is how attribution
+//           survives the checkout round-trip.
+//       (b) Hotmart's own traffic-source enum (e.g. "HOTMART_PRODUCT_PAGE",
+//           "HOTMART_CHECKOUT_CART") set when no sck was passed on the URL.
+//     Presence of `|` in the value distinguishes (a) from (b); enum values
+//     never contain pipes.
 //   - Hotmart pre-splits buyer name into `first_name` + `last_name`; use those
 //     directly instead of re-splitting `name`.
 //   - No phone field on the buyer by default. `body.buyer` has `email`,
@@ -58,6 +65,7 @@ export async function onRequestPost(context) {
       || '';
 
     const productIdStr = String(product.id || product.ucode || '');
+    const platformUtm = parseSckBundle(purchase.origin?.sck);
 
     const parsed = {
       platform: 'hotmart',
@@ -81,16 +89,11 @@ export async function onRequestPost(context) {
         name: product.name || '',
         price: { value: parseFloat(price.value) || 0, currency: price.currency_value || 'BRL' },
       }],
-      // Hotmart's default PURCHASE_APPROVED payload doesn't carry UTM
-      // breakdown. `checkout_sessions.utm_*` (from the sales page) is the
-      // source of truth for attribution.
-      platformUtm: {
-        utm_source: '',
-        utm_medium: '',
-        utm_campaign: '',
-        utm_content: '',
-        utm_term: '',
-      },
+      // UTMs recovered from the sck bundle when the sales page packed
+      // them there; otherwise empty and `_core.js` falls back to
+      // `checkout_sessions.utm_*` (the attribution the sales page
+      // persisted at visit time).
+      platformUtm,
     };
 
     const result = await processPurchase({ parsed, env, context });
@@ -107,4 +110,22 @@ export async function onRequestPost(context) {
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
+}
+
+// Unpack the pipe-joined UTM bundle the sales page may have written to
+// `origin.sck`. Returns empty strings when the input is absent, is
+// Hotmart's own traffic-source enum (no `|`), or is malformed.
+function parseSckBundle(sck) {
+  const empty = { utm_source: '', utm_medium: '', utm_campaign: '', utm_content: '', utm_term: '' };
+  if (!sck || typeof sck !== 'string' || !sck.includes('|')) return empty;
+  const parts = sck.split('|').map(p => {
+    try { return decodeURIComponent(p); } catch (_) { return p; }
+  });
+  return {
+    utm_source: parts[0] || '',
+    utm_medium: parts[1] || '',
+    utm_campaign: parts[2] || '',
+    utm_content: parts[3] || '',
+    utm_term: parts[4] || '',
+  };
 }

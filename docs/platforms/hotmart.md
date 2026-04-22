@@ -28,10 +28,33 @@ raise the bar for v1.
 - **URL parameter name on checkout URL**: `xcod`. Hotmart calls this the
   "source code" (SCK) and surfaces it in Analytics under that name.
 - **Webhook payload path**: `body.data.purchase.origin.xcod`.
-- **Do NOT** use `body.data.purchase.origin.sck` as a fallback — `sck` is
-  a traffic-source enum (e.g. `"HOTMART_PRODUCT_PAGE"`), not a UUID, and
-  using it would corrupt the `checkout_sessions` lookup.
+- **Do NOT** use `body.data.purchase.origin.sck` as a fallback for `trk`
+  — `sck` is repurposed by this stack to carry UTMs (see below) or, when
+  empty, falls through to Hotmart's own traffic-source enum.
 - **Character-set**: Hotmart preserves full 36-char UUIDs.
+
+## UTM pass-through (the `sck` merge trick)
+
+Hotmart does NOT forward `utm_*` URL query params on the checkout URL
+into the webhook JSON. Only `origin.xcod` and `origin.sck` survive the
+checkout round-trip. To recover attribution, the sales page packs the
+UTMs into `sck` as a pipe-joined, URL-encoded bundle:
+
+```
+?xcod=<trk>&sck=<utm_source>|<utm_medium>|<utm_campaign>|<utm_content>|<utm_term>
+```
+
+Each UTM value is `encodeURIComponent`'d before the join so a `|` inside
+a UTM value (rare, but possible with auto-populated `utm_content`)
+doesn't corrupt parsing. The adapter's `parseSckBundle()` decodes each
+part on receipt.
+
+When the sales page has no UTMs on its URL, it skips appending `sck`
+entirely and Hotmart fills `origin.sck` with its own traffic-source enum
+(`HOTMART_PRODUCT_PAGE`, `HOTMART_CHECKOUT_CART`, etc.). The adapter
+detects this by the absence of `|` and returns empty UTMs; `_core.js`
+then falls back to `checkout_sessions.utm_*` (what the sales page
+persisted at visit time) so attribution still lands in `purchase_log`.
 
 ## Payload shape (from real PURCHASE_APPROVED capture)
 
@@ -114,7 +137,7 @@ raise the bar for v1.
 | `productId` | `String(body.product.id)` |
 | `productName` | `body.product.name` |
 | `items[]` | Single-item array synthesized from `body.product` + `body.purchase.price` |
-| `platformUtm.utm_*` | `''` — Hotmart doesn't carry UTM breakdown in default payload |
+| `platformUtm.utm_*` | Unpacked from `body.purchase.origin.sck` if it contains `\|` (our UTM bundle); otherwise empty, and `_core.js` falls back to `checkout_sessions.utm_*` |
 
 ## Paid-sale filter
 
@@ -135,9 +158,11 @@ pending), `PURCHASE_CANCELED`. Only fire Meta/GA4/Ads on
   for Hotmart purchases. If a recipient needs phone for WhatsApp
   automation, they'd need Hotmart to enable a custom-field pass-through
   in their product settings (platform-side config, not ours to fix).
-- **`origin.sck` is NOT a tracking UUID.** It's a traffic-source enum
-  string like `"HOTMART_PRODUCT_PAGE"` or `"HOTMART_CHECKOUT_CART"`. The
-  adapter ignores it on purpose. Only `xcod` carries the `trk`.
+- **`origin.sck` is dual-purpose.** When the sales page passes it, it
+  carries our pipe-joined UTM bundle. When we don't, Hotmart fills it
+  with a traffic-source enum string like `"HOTMART_PRODUCT_PAGE"` or
+  `"HOTMART_CHECKOUT_CART"`. The adapter distinguishes the two by the
+  presence of `|`. It never carries the `trk` — that's `xcod` only.
 - **`first_name` / `last_name` are pre-split.** Don't re-split `name`
   yourself; use the fields Hotmart provides. (The adapter does.)
 - **`product.id` is numeric.** Always stringify before storage — D1's

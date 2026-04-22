@@ -173,6 +173,7 @@ These have sensible defaults. Change them only if you know why.
 |---|---|---|
 | Domain handling | `_middleware.js` computes the ETLD+1 sub-domain index from the Host header at runtime | No action — it self-configures, including `.com.br`, `.co.uk`, and other two-label TLDs |
 | Timezone for Google Ads conversion timestamps | `-03:00` (São Paulo, DST-free since 2019) | Set `TIMEZONE_OFFSET` secret to any ISO offset (`+00:00`, `-05:00`, etc.) |
+| Default phone country code | `55` (Brazil) — prepended to local-format phone numbers before hashing for Meta CAPI / ManyChat, per Meta Advanced Matching spec (digits must include country code + area code) | Set `DEFAULT_COUNTRY_CODE` secret to the recipient's ISO calling code (`1` US/CA, `44` UK, `351` Portugal, etc.). Detection is length-based — if a lead already typed a number at a plausible international length it passes through untouched. |
 | PII retention window | Raw email/name/phone stored indefinitely | Manual: run a periodic `DELETE` via scheduled worker. Not enforced by default. |
 | Which sales platforms are active | Eduzz / Hotmart / Kiwify all built in | A platform goes live once its `<PLATFORM>_WEBHOOK_SLUG` env var is set. Recipients paste the full `/webhook/<platform>/<slug>` URL into the platform's dashboard; wrong slug = 404 |
 | Dashboard auth | Query param `?key=<DASH_KEY>` | Rotate by changing the env var; no code change |
