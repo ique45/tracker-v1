@@ -58,10 +58,10 @@ buyer arrives on sales page (Flow A middleware still runs here)
    → buyer clicks CTA; page appends trk to the checkout URL in the
        platform's native custom-field name (tracker.code1 / xcod / sck)
    → buyer pays on the sales platform
-   → sales platform POSTs its webhook to /webhook/<platform>
-   → functions/webhook/<platform>.js
-        • verifies the signature (HMAC-SHA256 for Eduzz, hottok for Hotmart,
-          Kiwify-specific for Kiwify)
+   → sales platform POSTs its webhook to /webhook/<platform>/<slug>
+   → functions/webhook/<platform>/[slug].js
+        • checks params.slug against env.<PLATFORM>_WEBHOOK_SLUG (timing-safe)
+        • wrong slug → 404 (indistinguishable from a missing route)
         • parses the platform's payload into the normalized shape
         • delegates to functions/webhook/_core.js
    → _core.js
@@ -127,11 +127,23 @@ webhook returns quickly even when D1 is slow. `purchase_items` inserts run
 as a `db.batch()`; if any item fails, the parent `purchase_log` row is
 deleted to keep the invariant `SUM(items) = header`.
 
-### `functions/webhook/<platform>.js`
-Each adapter is ~80 lines: read body, verify signature, parse payload,
-delegate. They never import from each other and never branch on platform —
-if you find yourself adding `if (platform === 'hotmart')` in `_core.js`,
-push the logic back into the adapter instead.
+### `functions/webhook/<platform>/[slug].js`
+Each adapter is ~80 lines: gate on URL slug, parse payload, delegate.
+They never import from each other and never branch on platform — if you
+find yourself adding `if (platform === 'hotmart')` in `_core.js`, push
+the logic back into the adapter instead.
+
+The `[slug]` path segment is Cloudflare Pages dynamic routing — the
+platform adapter receives `context.params.slug` and compares it to the
+per-platform env var via `guardSlug()` from `functions/webhook/_utils.js`.
+Wrong slug returns 404 (not 401 or 403) so a scanner can't even tell the
+route exists, let alone try to attack it.
+
+### `functions/webhook/_utils.js`
+Two helpers: `timingSafeEqual(a, b)` for constant-time string comparison,
+and `guardSlug(paramSlug, expectedSlug)` which returns a 500 Response if
+the env var is unset, a 404 Response if the slug is wrong, or `null` if
+the slug is valid.
 
 ### `functions/api/*.js`
 Read-only dashboard endpoints. All gated by `DASH_KEY`. Each one owns one
@@ -181,6 +193,12 @@ control surface.
   endpoints are public and unauthenticated by design (the browser fires
   them). If you get DDoSed, enable Cloudflare rate-limiting rules at the
   dashboard level — not in the worker code.
+- **No platform-native signature verification** (HMAC-SHA256 for Eduzz,
+  `hottok` for Hotmart, HMAC-SHA1 for Kiwify). Webhook endpoints are
+  gated only by an unguessable per-recipient URL slug. This is the same
+  pattern n8n / Zapier / GitHub / Stripe use for webhook endpoints. The
+  post-launch `harden-tracking` skill layers real HMAC verification on
+  top for recipients who want defense-in-depth.
 - **No alerting.** There is no "webhook failed" page or email. The
   dashboard's Tracking Health section surfaces aggregate issues; recipients
   should check it weekly.

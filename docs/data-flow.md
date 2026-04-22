@@ -253,15 +253,16 @@ https://sun.eduzz.com/1234567?trk=f2d1a9c0-3e8b-4a2e-9c1d-3e7b8f4a2c6d
 
 ## Hop 5 — Platform webhook → adapter → `_core.js`
 
-**Trigger**: platform POSTs its webhook to `/webhook/<platform>` after the
-buyer completes payment.
+**Trigger**: platform POSTs its webhook to `/webhook/<platform>/<slug>`
+after the buyer completes payment.
 
-**What happens** (e.g. `functions/webhook/eduzz.js`):
+**What happens** (e.g. `functions/webhook/eduzz/[slug].js`):
 
-1. Read the raw body.
-2. Verify the platform signature against the shared secret. Invalid →
-   401, no DB touch.
-3. Unwrap if needed (Eduzz nests under `data`).
+1. Compare `context.params.slug` to `env.EDUZZ_WEBHOOK_SLUG` via
+   `guardSlug()`. Mismatch → 404; env missing → 500; no DB touch in
+   either case.
+2. Read the raw body.
+3. Unwrap if needed (Eduzz nests under `data`, Kiwify under `order`).
 4. Filter to paid sales (status = 'paid' for Eduzz; equivalents elsewhere).
 5. Build the normalized purchase object.
 6. Call `processPurchase({ parsed, env, context })`.
@@ -298,8 +299,16 @@ buyer completes payment.
 
 **Failure modes**:
 
-- **401 in platform webhook logs** → wrong webhook secret. Check
-  `EDUZZ_WEBHOOK_SECRET` / `HOTMART_HOTTOK` / `KIWIFY_SIGNATURE_KEY`.
+- **404 in platform webhook logs** → URL slug mismatch. The platform is
+  hitting the adapter but the slug doesn't match `<PLATFORM>_WEBHOOK_SLUG`.
+  Either the recipient pasted the wrong URL into the platform dashboard,
+  or the env var is set to a different value. Compare the URL shown in
+  the platform's webhook logs to the output of `wrangler pages secret
+  list --project-name <name>`.
+- **500 with "webhook not configured" in response body** → the slug env
+  var isn't set on this deploy. Re-run the slug-generation step of
+  `deploy-stack` or set it manually via `wrangler pages secret put
+  <PLATFORM>_WEBHOOK_SLUG`.
 - **`checkoutData` empty in `_core.js`** → `trk` lookup failed. Either the
   buyer's session never wrote `checkout_sessions` (Hop 3 broke) or the
   platform sent back the wrong value in the custom field (Hop 4 broke).

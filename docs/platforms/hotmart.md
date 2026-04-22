@@ -1,91 +1,102 @@
 # Hotmart
 
-Brazilian platform, international reach. Hotmart's webhook uses a fixed
-token called `hottok` instead of a per-request HMAC — simpler to verify
-but more sensitive to secret leaks (rotate immediately if you suspect
-exposure). Custom tracking lands under the `xcod` field.
-
-> **Status**: the Hotmart adapter file exists at
-> `functions/webhook/hotmart.js` as a Day 2 stub. Full implementation
-> (parser + `hottok` verification + real test purchase) lands Day 9 per
-> `~/.claude/plans/snoopy-baking-pinwheel.md`. Everything below is the
-> target shape — Claude Code should use this doc as the specification
-> when writing the Day 9 code and should verify each field against a
-> real sanitized webhook body before shipping.
+Brazilian platform with international reach. Custom tracking lands under
+the `xcod` field. The webhook body is well-structured and v2.0.0 is
+stable; the parser below was confirmed against a real `PURCHASE_APPROVED`
+capture.
 
 ## Identity
 
-- **Webhook endpoint**: `/webhook/hotmart`
-- **Adapter file**: `functions/webhook/hotmart.js`
-- **Sandbox availability**: yes — Hotmart has a "Ambiente de testes"
-  mode per product. Create a sandbox product, copy the sandbox webhook
-  URL into Cloudflare, fire test purchases with fake card numbers.
+- **Webhook endpoint**: `/webhook/hotmart/<HOTMART_WEBHOOK_SLUG>`
+- **Adapter file**: `functions/webhook/hotmart/[slug].js`
+- **Sandbox availability**: yes — Hotmart has "Ambiente de testes" mode
+  per product. Create a sandbox product, point its webhook at the
+  staging URL, fire test purchases with fake card numbers.
 - **Dashboard URL for webhook config**: Hotmart → Ferramentas → Webhook.
+
+## Endpoint security — obscure URL
+
+Same pattern as Eduzz. `/webhook/hotmart/<slug>` with `<slug>` stored as
+`env.HOTMART_WEBHOOK_SLUG`. Wrong slug → 404. Platform-native `hottok`
+verification is deliberately deferred to the future `harden-tracking`
+skill — Hotmart's `hottok` is a static bearer token, which leaks like an
+obscure URL leaks, so adding it alongside the slug doesn't meaningfully
+raise the bar for v1.
 
 ## The `trk` field
 
 - **URL parameter name on checkout URL**: `xcod`. Hotmart calls this the
-  "source code" and exposes it in Analytics as `src`.
-- **Webhook payload path**: `body.data.purchase.origin.xcod` on current
-  v2 webhooks; older webhooks used `body.buyer.source` or
-  `body.prod_utm`. The adapter MUST try both (xcod-first, source-fallback)
-  to survive account-level webhook version differences.
-- **Character-set**: Hotmart preserves full 36-char UUIDs. URL-encode
-  defensively anyway (the sales page already does).
+  "source code" (SCK) and surfaces it in Analytics under that name.
+- **Webhook payload path**: `body.data.purchase.origin.xcod`.
+- **Do NOT** use `body.data.purchase.origin.sck` as a fallback — `sck` is
+  a traffic-source enum (e.g. `"HOTMART_PRODUCT_PAGE"`), not a UUID, and
+  using it would corrupt the `checkout_sessions` lookup.
+- **Character-set**: Hotmart preserves full 36-char UUIDs.
 
-## Signature verification (`hottok`)
-
-- **Header name**: `x-hotmart-hottok` on current webhooks; legacy is a
-  `hottok` query parameter on the POST URL. The adapter should accept
-  both locations.
-- **Algorithm**: **not HMAC** — `hottok` is a fixed secret string. The
-  adapter compares `request.headers.get('x-hotmart-hottok') === env.HOTMART_HOTTOK`
-  using a timing-safe comparison (`crypto.subtle` constant-time string
-  comparison via Uint8Array equality).
-- **Shared-secret env var**: `HOTMART_HOTTOK`
-- **Where the recipient finds the secret**: Hotmart → Ferramentas →
-  Webhook → "HOTTOK" column on the configured endpoint. Generate one if
-  missing; rotate by generating a new one and updating Cloudflare via:
-  ```
-  wrangler pages secret put HOTMART_HOTTOK
-  ```
-
-**Critical**: because `hottok` is a fixed bearer token, leaking it is
-worse than leaking an HMAC secret — an attacker with the value can fire
-arbitrary purchases at your endpoint until you rotate. Never log the
-value, never include it in error messages, always rotate after support
-tickets that required sharing Cloudflare logs.
-
-## Payload shape (target — verify against a real webhook on Day 9)
-
-Hotmart wraps everything under `{ event, version, data }`. The adapter
-unwraps as `const body = rawPayload.data || rawPayload`.
+## Payload shape (from real PURCHASE_APPROVED capture)
 
 ```json
 {
+  "id": "22445a52-72ce-47fd-a607-96ff951fcbfc",
+  "creation_date": 1771935156138,
   "event": "PURCHASE_APPROVED",
   "version": "2.0.0",
   "data": {
-    "purchase": {
-      "transaction": "HP12345678",
-      "status": "APPROVED",
-      "price": { "value": 97.00, "currency_value": "BRL" },
-      "offer": { "code": "abc123" },
-      "origin": { "xcod": "f2d1a9c0-3e8b-4a2e-9c1d-3e7b8f4a2c6d" },
-      "tracking": {
-        "source": "facebook",
-        "source_sck": "",
-        "external_code": ""
-      }
-    },
     "product": {
-      "id": 1234567,
-      "name": "My Product"
+      "id": 5413386,
+      "ucode": "50d5cde2-1f92-4b61-a42a-1f287383a7c4",
+      "name": "My Product",
+      "warranty_date": "2026-03-03T00:00:00Z",
+      "has_co_production": false,
+      "is_physical_product": false
     },
+    "affiliates": [{ "affiliate_code": "", "name": "" }],
     "buyer": {
-      "name": "Alice Silva",
       "email": "alice@example.com",
-      "checkout_phone": "+5511987654321"
+      "name": "Alice Silva",
+      "first_name": "Alice",
+      "last_name": "Silva",
+      "address": {
+        "city": "São Paulo", "country": "Brasil", "country_iso": "BR",
+        "state": "SP", "neighborhood": "…", "zipcode": "…",
+        "address": "…", "number": "…", "complement": "…"
+      },
+      "document": "…",
+      "document_type": "CPF"
+    },
+    "producer": {
+      "name": "…", "document": "…", "legal_nature": "…"
+    },
+    "commissions": [
+      { "value": 10.6, "source": "MARKETPLACE", "currency_value": "BRL" },
+      { "value": 83.91, "source": "PRODUCER", "currency_value": "BRL" }
+    ],
+    "purchase": {
+      "approved_date": 1771935138000,
+      "full_price": { "value": 97, "currency_value": "BRL" },
+      "price": { "value": 97, "currency_value": "BRL" },
+      "checkout_country": { "name": "Brasil", "iso": "BR" },
+      "order_bump": { "is_order_bump": false },
+      "origin": {
+        "sck": "HOTMART_PRODUCT_PAGE",
+        "xcod": "f2d1a9c0-3e8b-4a2e-9c1d-3e7b8f4a2c6d"
+      },
+      "original_offer_price": { "value": 97, "currency_value": "BRL" },
+      "order_date": 1771935084000,
+      "status": "APPROVED",
+      "transaction": "HP3159595263",
+      "payment": {
+        "installments_number": 1,
+        "type": "PIX",
+        "pix_qrcode": "…",
+        "pix_code": "…",
+        "pix_expiration_date": 1772107885000
+      },
+      "offer": { "code": "a8wswzvg" },
+      "invoice_by": "SELLER",
+      "subscription_anticipation_purchase": false,
+      "is_funnel": false,
+      "business_model": "I"
     }
   }
 }
@@ -93,73 +104,69 @@ unwraps as `const body = rawPayload.data || rawPayload`.
 
 | Normalized field | Payload path |
 |---|---|
-| `trk` | `body.purchase.origin.xcod` (fallback: `body.purchase.tracking.source_sck`) |
+| `trk` | `body.purchase.origin.xcod` |
 | `email` | `body.buyer.email` |
-| `name` | `body.buyer.name` |
-| `phone` | `body.buyer.checkout_phone` (fallback `body.buyer.documents?.[0]?.value` — no, that's the CPF; use phone-only fields) |
-| `value` | `body.purchase.price.value` |
-| `currency` | `body.purchase.price.currency_value` (note: Hotmart's field is `currency_value`, not `currency`) |
+| `name` | `body.buyer.name` (or `first_name + " " + last_name`) |
+| `phone` | `''` — **not surfaced** in default PURCHASE_APPROVED payload |
+| `value` | `body.purchase.price.value` (plain number, already in reais) |
+| `currency` | `body.purchase.price.currency_value` (note: `currency_value`, not `currency`) |
 | `transactionId` | `body.purchase.transaction` |
 | `productId` | `String(body.product.id)` |
 | `productName` | `body.product.name` |
-| `items[]` | Single-item array built from `body.product` (Hotmart v2 webhooks don't support carts in the standard `PURCHASE_APPROVED` event) |
-| `platformUtm.utm_source` | `body.purchase.tracking.source` |
-| `platformUtm.utm_medium` / `utm_campaign` / `utm_content` / `utm_term` | Hotmart doesn't carry UTM breakdown by default; leave empty and rely on `checkout_sessions` UTMs instead |
+| `items[]` | Single-item array synthesized from `body.product` + `body.purchase.price` |
+| `platformUtm.utm_*` | `''` — Hotmart doesn't carry UTM breakdown in default payload |
 
 ## Paid-sale filter
 
 - **Paid event**: `rawPayload.event === 'PURCHASE_APPROVED'`
-- **Status field**: `body.purchase.status === 'APPROVED'`
-- **Status field path**: `body.purchase.status`
+- **Status check**: `body.purchase.status === 'APPROVED'`
 
 Hotmart fires separate events for different lifecycle stages:
 `PURCHASE_APPROVED`, `PURCHASE_COMPLETE` (product delivered),
-`PURCHASE_REFUNDED`, `PURCHASE_CHARGEBACK`, `PURCHASE_DELAYED`
-(Pix/boleto pending), `PURCHASE_CANCELED`. Only fire Meta/GA4/Ads on
+`PURCHASE_REFUNDED`, `PURCHASE_CHARGEBACK`, `PURCHASE_DELAYED` (Pix/boleto
+pending), `PURCHASE_CANCELED`. Only fire Meta/GA4/Ads on
 `PURCHASE_APPROVED`; acknowledge everything else with 200 and skip.
-
-**Gotcha**: if the recipient ALSO enables `PURCHASE_COMPLETE`, the
-adapter will double-fire. Either filter strictly on `PURCHASE_APPROVED`
-(current approach) or use the `transaction_id` unique index on
-`purchase_log` as the dedup safety net. The adapter should log a warning
-if a second event for the same transaction arrives.
 
 ## Known gotchas
 
-- **Multiple offers per product**: Hotmart lets you run multiple offers
-  for the same product (different prices/coupons). `product.id` stays
-  constant across offers; use `purchase.offer.code` if the recipient
-  needs per-offer segmentation in the dashboard.
-- **Installment sales**: Hotmart fires `PURCHASE_APPROVED` on the first
-  paid installment, then a separate event per subsequent installment.
-  Meta will see one `Purchase` event at the full value — correct for
-  ROAS but may surprise recipients comparing Meta revenue to actual cash
-  flow.
-- **Sandbox vs production `hottok`**: Hotmart issues one `hottok` per
-  environment. Sandbox webhooks won't validate against a production
-  `hottok` and vice versa. Document which environment the deployed
-  Cloudflare instance is wired to.
-- **`currency_value` not `currency`**: easy to miss. Hotmart's
-  documentation isn't consistent about it across webhook versions.
-- **Query-string `hottok`**: some older Hotmart webhook configurations
-  append `?hottok=xxx` to the endpoint URL instead of using a header.
-  The adapter should check both.
+- **No phone number on default payload.** `body.buyer` has `email`,
+  `name`, `first_name`, `last_name`, `document`, `address` — but no
+  `phone` / `mobile` / `checkout_phone`. ManyChat fan-out silently skips
+  for Hotmart purchases. If a recipient needs phone for WhatsApp
+  automation, they'd need Hotmart to enable a custom-field pass-through
+  in their product settings (platform-side config, not ours to fix).
+- **`origin.sck` is NOT a tracking UUID.** It's a traffic-source enum
+  string like `"HOTMART_PRODUCT_PAGE"` or `"HOTMART_CHECKOUT_CART"`. The
+  adapter ignores it on purpose. Only `xcod` carries the `trk`.
+- **`first_name` / `last_name` are pre-split.** Don't re-split `name`
+  yourself; use the fields Hotmart provides. (The adapter does.)
+- **`product.id` is numeric.** Always stringify before storage — D1's
+  `product_id` column is TEXT.
+- **Price is a decimal number, not cents.** `97` means R$ 97.00. Do NOT
+  divide by 100 like Kiwify requires.
+- **Multiple offers per product**: `product.id` is constant across
+  offers; use `purchase.offer.code` if per-offer segmentation is needed.
+- **Installment sales**: `PURCHASE_APPROVED` fires on the first paid
+  installment, then separate events per subsequent installment. Meta
+  sees one `Purchase` event at full value — correct for ROAS, may
+  surprise recipients comparing Meta revenue to cash flow.
+- **Sandbox vs production webhooks**: Hotmart issues webhook config per
+  environment. Sandbox test purchases go to the sandbox URL; production
+  to the prod URL. Point the right slug at each.
 
 ## Verification test
 
-1. In Hotmart sandbox: create a product with a sandbox webhook URL
-   pointing at `https://<your-pages-domain>/webhook/hotmart`.
-2. Set the `HOTMART_HOTTOK` Cloudflare secret to the sandbox token.
-3. Click Hotmart's "Enviar teste" button if available; otherwise trigger
-   a real sandbox purchase.
-4. Check Cloudflare Workers logs for the adapter hit, then:
+1. Run `deploy-stack`; note the Hotmart webhook URL.
+2. Paste it into Hotmart → Ferramentas → Webhook (or the sandbox
+   equivalent).
+3. Fire a real test purchase (sandbox or 100%-off coupon).
+4. Query D1:
    ```
    wrangler d1 execute <db> --remote --command \
-     "SELECT transaction_id, trk, value, currency, utm_source, meta_response_ok FROM purchase_log ORDER BY created_at DESC LIMIT 1"
+     "SELECT transaction_id, trk, value, currency, meta_response_ok, product_id, product_name FROM purchase_log ORDER BY created_at DESC LIMIT 1"
    ```
-5. Confirm `trk` matches what your sales page generated, `value` is
-   right, and `meta_response_ok = 1`.
-6. Check Meta Events Manager → Test Events for the `Purchase` event.
-7. Rotate the sandbox `hottok` to confirm rotation works, re-test.
-8. Swap the Cloudflare secret to the production `hottok` only after step
-   7 passes.
+5. Confirm: non-empty `trk` matching what your sales page generated,
+   `value = 97.00`, `currency = 'BRL'`, `meta_response_ok = 1` (if
+   Meta creds are set), `product_id` stringified from the numeric
+   Hotmart ID.
+6. Hit `/webhook/hotmart/wrong-slug` directly — expect 404.

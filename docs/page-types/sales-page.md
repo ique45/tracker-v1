@@ -85,21 +85,20 @@ btn.addEventListener('click', () => {
 The page side is only half the job. Each recipient must also, in their
 sales-platform dashboard:
 
-1. **Set the webhook URL** to the deployed Pages URL plus `/webhook/<platform>`.
-   Example: `https://mysite.pages.dev/webhook/eduzz`.
+1. **Set the webhook URL** to the full path `deploy-stack` printed,
+   including the per-platform UUID slug. Shape:
+   `https://<project>.pages.dev/webhook/<platform>/<slug>`.
+   Example: `https://mysite.pages.dev/webhook/eduzz/a1b2c3d4-5678-…`.
 2. **Enable the events that indicate a completed paid sale**:
    - Eduzz → `sale.paid` (or equivalent; see [platforms/eduzz.md](../platforms/eduzz.md)).
    - Hotmart → `PURCHASE_APPROVED`.
    - Kiwify → `order_approved`.
-3. **Copy the signing secret** out of the dashboard and store it as a
-   Cloudflare secret:
-   ```
-   wrangler pages secret put EDUZZ_WEBHOOK_SECRET
-   wrangler pages secret put HOTMART_HOTTOK
-   wrangler pages secret put KIWIFY_SIGNATURE_KEY
-   ```
-4. **Fire a test webhook** from the platform dashboard if possible, then
+3. **Fire a test webhook** from the platform dashboard if possible, then
    run `verify-tracking` skill checkpoint 5 to confirm the adapter got it.
+
+The slug in the URL is the only thing gating the endpoint — a request
+to `/webhook/<platform>/<wrong-slug>` returns 404. Treat the URL like a
+password: save it in a password manager, don't share it publicly.
 
 ## Why the page writes `checkout_sessions` at page load, not at CTA click
 

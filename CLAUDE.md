@@ -83,16 +83,21 @@ Hop-by-hop debugging bible: `docs/data-flow.md`
   non-digits and leading zeros). Raw PII persists in D1 for debugging only
   and never leaves the recipient's own infrastructure.
 - **Per-platform webhook adapter pattern.** Each sales platform has its own
-  file at `functions/webhook/<platform>.js` that handles payload parsing
-  plus signature verification. The shared lookup/enrichment/fan-out lives in
-  `functions/webhook/_core.js`. When adding a new platform, copy an existing
-  adapter as a structural reference — do not add platform branching to
-  `_core.js`.
-- **Webhook signatures are mandatory.** Every platform adapter MUST verify
-  its signature before processing. A webhook without a valid signature
-  returns 401 and never touches the database. Missing the verification env
-  var (e.g. `EDUZZ_WEBHOOK_SECRET`) is a deploy-blocking error, not a
-  silent skip.
+  file at `functions/webhook/<platform>/[slug].js` that gates on the URL
+  slug, then parses the platform's payload into the normalized shape. The
+  shared lookup/enrichment/fan-out lives in `functions/webhook/_core.js`.
+  When adding a new platform, copy an existing adapter as a structural
+  reference — do not add platform branching to `_core.js`.
+- **Webhook endpoints are gated by an obscure URL.** Every platform has a
+  per-recipient UUID v4 slug stored as `env.<PLATFORM>_WEBHOOK_SLUG`. The
+  adapter's full path is `/webhook/<platform>/<slug>`; wrong slug returns
+  404 (indistinguishable from a missing route). `deploy-stack` generates
+  the UUIDs automatically and prints the full URLs for the recipient to
+  paste into each platform's dashboard. Platform-native signature
+  verification (HMAC/hottok) is deliberately deferred to the post-launch
+  `harden-tracking` skill — adding it pre-launch was judged too high-friction
+  for 1000+ non-dev recipients. A missing `<PLATFORM>_WEBHOOK_SLUG` env var
+  is a deploy-blocking 500 on the endpoint, not a silent accept.
 - **Dashboard and sync endpoints have separate secrets.** `DASH_KEY` gates
   `/dash` and `/api/*` reads. `SYNC_SECRET` gates `/api/sync/*` writes from
   external cron. Never reuse the same value for both.
@@ -108,9 +113,10 @@ Hop-by-hop debugging bible: `docs/data-flow.md`
 | `checkout-session.js` | `POST /checkout-session` — persists `trk` + attribution when a sales-page loads or a checkout button fires. |
 | `scripts/[[path]].js` | First-party proxy for `gtag.js`. Example pages load GA4 via `/scripts/gtag.js?id=...`. |
 | `webhook/_core.js` | Platform-agnostic brain: lookup `trk` → enrich → fan out to Meta/GA4/Google Ads/Encharge/ManyChat → persist `purchase_log` + `purchase_items`. |
-| `webhook/eduzz.js` | Eduzz adapter. Reads raw body, verifies `x-signature` HMAC-SHA256, parses Eduzz shape, delegates to `_core.js`. |
-| `webhook/hotmart.js` | Hotmart adapter. Verifies `hottok`, parses Hotmart shape. |
-| `webhook/kiwify.js` | Kiwify adapter. Verifies Kiwify signature, parses Kiwify shape. |
+| `webhook/_utils.js` | `timingSafeEqual` + `guardSlug` helpers shared by adapters. |
+| `webhook/eduzz/[slug].js` | Eduzz adapter. Gates on `EDUZZ_WEBHOOK_SLUG`, parses Eduzz shape, delegates to `_core.js`. |
+| `webhook/hotmart/[slug].js` | Hotmart adapter. Gates on `HOTMART_WEBHOOK_SLUG`, parses Hotmart shape. |
+| `webhook/kiwify/[slug].js` | Kiwify adapter. Gates on `KIWIFY_WEBHOOK_SLUG`, parses Kiwify shape. |
 | `api/revenue.js` | Dashboard: gross revenue, sales, AOV, daily time series from `purchase_log`. |
 | `api/products.js` | Dashboard: per-product breakdown + time series from `purchase_items`. |
 | `api/utm-breakdown.js` | Dashboard: tabbed UTM drill-down from `purchase_log` with cascading filters. |
@@ -168,6 +174,6 @@ These have sensible defaults. Change them only if you know why.
 | Domain handling | `_middleware.js` computes the ETLD+1 sub-domain index from the Host header at runtime | No action — it self-configures, including `.com.br`, `.co.uk`, and other two-label TLDs |
 | Timezone for Google Ads conversion timestamps | `-03:00` (São Paulo, DST-free since 2019) | Set `TIMEZONE_OFFSET` secret to any ISO offset (`+00:00`, `-05:00`, etc.) |
 | PII retention window | Raw email/name/phone stored indefinitely | Manual: run a periodic `DELETE` via scheduled worker. Not enforced by default. |
-| Which sales platforms are active | Eduzz / Hotmart / Kiwify all built in | A platform goes live once its webhook secret env var is set; missing secret = 401 |
+| Which sales platforms are active | Eduzz / Hotmart / Kiwify all built in | A platform goes live once its `<PLATFORM>_WEBHOOK_SLUG` env var is set. Recipients paste the full `/webhook/<platform>/<slug>` URL into the platform's dashboard; wrong slug = 404 |
 | Dashboard auth | Query param `?key=<DASH_KEY>` | Rotate by changing the env var; no code change |
 | Ad-spend sync | Off until recipient configures Meta Ads cron (see `docs/ad-spend-sync.md`) | Set `META_ADS_ACCESS_TOKEN`, `META_ADS_ACCOUNT_ID`, `SYNC_SECRET` and schedule an external cron to hit `/api/sync/meta-ads` hourly |

@@ -129,12 +129,45 @@ If the recipient doesn't already have a developer token, tell them "This takes a
 
 If they set ad spend secrets, remind them they still need to schedule the cron externally. Point them at `docs/ad-spend-sync.md` for the three cron provider walkthroughs (cron-job.org, GitHub Actions, EasyCron).
 
-**Per-platform webhook secrets** (set only the ones matching the sales platforms they actually use):
-- `EDUZZ_WEBHOOK_SECRET` — from Eduzz dashboard → webhook settings
-- `HOTMART_WEBHOOK_SECRET` — Hotmart `hottok` value
-- `KIWIFY_WEBHOOK_SECRET` — from Kiwify dashboard → webhook configuration
+**Per-platform webhook slugs** (set only the ones matching the sales platforms they actually use):
 
-Tell them: "Setting a webhook secret is what makes that sales platform's webhook accept incoming purchases. Without it, the endpoint rejects everything with 401. Only set it for the platforms you actually use."
+Sales-platform webhooks hit the stack at `/webhook/<platform>/<slug>`, where
+`<slug>` is a random 36-character UUID that gates the endpoint. It's the
+only thing standing between a public URL and arbitrary purchase
+injection, so treat it like a secret — but YOU generate it, the recipient
+doesn't need to find anything in any dashboard.
+
+Ask which sales platforms they use (Eduzz / Hotmart / Kiwify / none of
+those). For each YES, generate a fresh UUID and set it as the platform's
+slug secret:
+
+```bash
+# Generate UUIDs (one per platform the recipient uses)
+EDUZZ_SLUG=$(uuidgen | tr '[:upper:]' '[:lower:]')
+HOTMART_SLUG=$(uuidgen | tr '[:upper:]' '[:lower:]')
+KIWIFY_SLUG=$(uuidgen | tr '[:upper:]' '[:lower:]')
+
+# Set each as a Cloudflare secret (recipient sees the prompt but we paste)
+echo "$EDUZZ_SLUG"   | wrangler pages secret put EDUZZ_WEBHOOK_SLUG   --project-name ${PROJECT_NAME}
+echo "$HOTMART_SLUG" | wrangler pages secret put HOTMART_WEBHOOK_SLUG --project-name ${PROJECT_NAME}
+echo "$KIWIFY_SLUG"  | wrangler pages secret put KIWIFY_WEBHOOK_SLUG  --project-name ${PROJECT_NAME}
+```
+
+After setting, **capture and display the full webhook URLs back to the
+recipient** — they'll paste these into each platform's dashboard in a
+later step. This is the ONLY time the slugs are surfaced; they should
+save them in a password manager alongside `DASH_KEY`.
+
+```
+Eduzz webhook URL:   https://${PROJECT_NAME}.pages.dev/webhook/eduzz/${EDUZZ_SLUG}
+Hotmart webhook URL: https://${PROJECT_NAME}.pages.dev/webhook/hotmart/${HOTMART_SLUG}
+Kiwify webhook URL:  https://${PROJECT_NAME}.pages.dev/webhook/kiwify/${KIWIFY_SLUG}
+```
+
+Tell the recipient: "These URLs are how your sales platform reaches your
+tracking stack. Save them — you'll paste one into each platform's
+webhook configuration. If anyone else gets the URL, they can inject fake
+purchases into your reporting, so don't share them publicly."
 
 ## Step 9 — Initial deploy
 
