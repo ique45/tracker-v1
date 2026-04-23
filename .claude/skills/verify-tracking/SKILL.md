@@ -54,7 +54,7 @@ wrangler d1 execute ${DB_NAME} --remote --command \
 **FAIL modes**:
 - **Zero rows.** Either no Lead event was ever fired (the recipient hasn't submitted the form), or the endpoint is returning 500. Ask them to submit the lead form once in a browser with devtools Network tab open. They should see a POST to `/tracker` with 200 response. If 500, the response body will tell you what's wrong.
 - **Rows exist but `meta_response_ok = 0`.** The `meta_response_body` column has the error. Most common: invalid `META_ACCESS_TOKEN` (Meta returns a 190 error code), invalid `META_PIXEL_ID`, or the token doesn't have `ads_management` permission. Show the recipient the error body.
-- **Rows exist but `ga4_response_ok = 0`.** Usually the `GA4_API_SECRET` is wrong or was created for a different measurement ID. Have them re-create the secret in GA4 Admin → Data Streams → Measurement Protocol API secrets and `wrangler pages secret put GA4_API_SECRET` it again.
+- **Rows exist but `ga4_response_ok = 0`.** Usually the `GA4_API_SECRET` is wrong or was created for a different measurement ID. Have them re-create the secret in GA4 Admin → Data Streams → Measurement Protocol API secrets and paste the new value into Cloudflare dashboard → Pages project → Settings → Environment variables (edit `GA4_API_SECRET`), then retry the latest deployment.
 - **Only `PageView` rows show up here.** That's a bug in this skill's premise — PageView is never logged to `event_log`. If you see them, something's wrong with `tracker.js`. Stop and investigate.
 
 ## Checkpoint 3 — Sales page generates `trk` and writes `checkout_sessions`
@@ -73,7 +73,7 @@ wrangler d1 execute ${DB_NAME} --remote --command \
 **PASS** — at least one row with a UUID-shaped `trk` and a non-empty `session_id`.
 
 **FAIL modes**:
-- **Zero rows.** The recipient hasn't visited a sales page yet, or the sales page isn't calling `/checkout-session` on load. Ask them to visit their sales page URL once. If still no row, read their sales page HTML and confirm it has the `persistCheckoutSession()` IIFE from `examples/sales-page/starter.html`.
+- **Zero rows.** The recipient hasn't visited a sales page yet, or the sales page isn't calling `/checkout-session` on load. Ask them to visit their sales page URL once. If still no row, read their sales page HTML and confirm it has the `persistCheckoutSession()` IIFE from `examples/sales-page/index.html`.
 - **Row exists but `session_id` is empty.** The `_krob_sid` cookie didn't reach the `/checkout-session` fetch. Usually means the sales page was loaded in a new tab with no prior visit, or cookies are being blocked (Safari ITP third-party, or the recipient's dev browser has cookies disabled). Ask them to visit the sales page in a fresh normal Chrome window.
 - **`fbp` / `fbc` are empty but `session_id` is present.** The session row exists but has no `fbp`/`fbc` — go back to Checkpoint 1 and check why middleware isn't setting them.
 

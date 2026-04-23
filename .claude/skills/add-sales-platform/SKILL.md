@@ -62,11 +62,19 @@ Generate a fresh UUID v4 for this platform's webhook endpoint:
 ```bash
 NEW_SLUG=$(uuidgen | tr '[:upper:]' '[:lower:]')
 PLATFORM_UPPER=$(echo "<platform>" | tr '[:lower:]' '[:upper:]')
-echo "$NEW_SLUG" | wrangler pages secret put ${PLATFORM_UPPER}_WEBHOOK_SLUG --project-name <project>
+echo "$NEW_SLUG"
 ```
 
-Capture the slug value so you can print the full webhook URL back to
-the recipient in Step 6.
+Then tell the recipient to add it as an environment variable in the
+Cloudflare dashboard — **Pages project → Settings → Environment
+variables → Add variable** — with:
+
+- **Name**: `${PLATFORM_UPPER}_WEBHOOK_SLUG`
+- **Value**: `<NEW_SLUG value you printed above>`
+- **Encrypt**: yes 🔒
+
+Wait for them to confirm it's saved before moving on. Capture the slug
+so you can print the full webhook URL back to the recipient in Step 8.
 
 ## Step 3 — Pick the structural reference
 
@@ -147,7 +155,7 @@ branch there, push the logic back into the adapter instead.
 ## Step 7 — Update the sales page routing
 
 If the recipient already has sales pages using
-`examples/sales-page/starter.html`, the `TRK_FIELD_BY_PLATFORM` lookup
+`examples/sales-page/index.html`, the `TRK_FIELD_BY_PLATFORM` lookup
 table in each page needs the new entry. Tell the recipient:
 
 > Any existing sales page that wants to send traffic to this new
@@ -160,11 +168,18 @@ recipient to edit their existing pages.
 
 ## Step 8 — Deploy and verify
 
+Commit the adapter + doc and push — Cloudflare Pages auto-deploys on
+every push to `main`:
+
 ```bash
-wrangler pages deploy --project-name <project>
+git add functions/webhook/<platform>/ docs/platforms/<platform>.md
+git commit -m "Add <platform> webhook adapter"
+git push
 ```
 
-Print the full webhook URL back to the recipient:
+Give the build ~1-2 minutes to go green (Cloudflare dashboard → Pages
+project → **Deployments**). Print the full webhook URL back to the
+recipient:
 ```
 <Platform> webhook URL: https://<project>.pages.dev/webhook/<platform>/<slug>
 ```

@@ -124,13 +124,20 @@ unless they ask.
 
 ## Step 6 — Deploy and verify
 
-Deploy the change:
+Deploy by committing and pushing to the GitHub repo wired up during
+`deploy-stack` — Cloudflare Pages auto-builds on every push to `main`:
+
 ```bash
-wrangler pages deploy
+git add <path>/
+git commit -m "Add <page-type> at /<path>"
+git push
 ```
 
-Wait for the deployment URL. Then run the smoke test that matches the
-page type.
+Cloudflare's dashboard → Pages project → **Deployments** shows the
+build; give it ~1-2 minutes to turn green. If the recipient hasn't set
+up the git+Pages connection yet, stop and run `deploy-stack` first.
+
+Then run the smoke test that matches the page type.
 
 ### Lead form smoke test
 
@@ -178,7 +185,8 @@ Hop 1 and walk forward until you find the break.
 After the smoke test passes:
 
 - **The page is live**. They can edit the copy/content directly in the
-  `.html` file and redeploy with `wrangler pages deploy`.
+  `.html` file and redeploy with `git add . && git commit -m "..." && git push`
+  — Cloudflare auto-redeploys on every push to `main`.
 - **Ad URLs should always include UTMs.** A Meta ad without
   `?utm_source=facebook&utm_medium=paid&utm_campaign=…` will land in
   the dashboard as "(empty)" — the middleware captures what's in the

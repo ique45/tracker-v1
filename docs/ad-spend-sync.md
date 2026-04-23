@@ -63,26 +63,19 @@ right token type for server-side syncs.
 
 ### 3. Set the three required environment variables
 
-In your Cloudflare Pages project settings, add three secrets:
+In the Cloudflare dashboard → your Pages project → **Settings →
+Environment variables → Add variable** (set each under Production,
+click **Encrypt** 🔒 on all three since they're sensitive):
 
-```bash
-wrangler pages secret put META_ADS_ACCESS_TOKEN
-# paste the token from step 1
+| Name | Value |
+|---|---|
+| `META_ADS_ACCESS_TOKEN` 🔒 | the token from step 1 |
+| `META_ADS_ACCOUNT_ID` | the ID from step 2 (digits only, no `act_` prefix) |
+| `SYNC_SECRET` 🔒 | a random string, e.g. `openssl rand -hex 32` — this gates `/api/sync/meta-ads`; only requests with a matching `x-sync-secret` header are accepted |
 
-wrangler pages secret put META_ADS_ACCOUNT_ID
-# paste the ID from step 2 (digits only, no act_ prefix)
-
-wrangler pages secret put SYNC_SECRET
-# generate a random string, e.g. `openssl rand -hex 32`
-# this gates the /api/sync/meta-ads endpoint — only requests with a
-# matching x-sync-secret header are accepted
-```
-
-After setting them, redeploy once so the worker picks them up:
-
-```bash
-wrangler pages deploy
-```
+Env-var changes don't apply to existing deployments — trigger a redeploy:
+either Cloudflare dashboard → **Deployments** → **Retry deployment** on
+the latest build, or push any commit to `main`.
 
 ### 4. Verify the endpoint works
 

@@ -175,9 +175,12 @@ control surface.
 - **Free tier covers real usage** — at ~3k visits/day and 150 sales/day the
   live reference implementation is comfortably inside the free tier. This
   matters because recipients run their own accounts.
-- **`wrangler` is the whole deploy story** — the `deploy-stack` skill
-  drives `wrangler pages deploy` and `wrangler d1 migrations apply` and
-  nothing else. No Docker, no CI, no Terraform.
+- **Deploy is hybrid: `wrangler` for D1, GitHub + dashboard for Pages** —
+  the `deploy-stack` skill uses `wrangler` only to create the D1 database
+  and apply migrations. Everything else is direct: `gh` creates a private
+  GitHub repo, the recipient connects that repo to a Pages project in the
+  Cloudflare dashboard, and every `git push` thereafter triggers an
+  auto-redeploy. No Docker, no CI, no Terraform.
 
 ## What this stack deliberately does NOT do
 

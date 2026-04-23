@@ -39,12 +39,15 @@ This is **not** for you if:
 
 - **A Cloudflare account.** The free tier is enough to start. You'll create a
   Pages project and a D1 database inside it.
-- **Wrangler CLI installed**: `npm install -g wrangler`
+- **A GitHub account**, with the `gh` CLI installed and authenticated
+  (`gh auth login`). Cloudflare Pages deploys your stack by auto-pulling from
+  GitHub every time you push.
+- **Node.js** so `npx wrangler@latest` works (no global install needed).
 - **Claude Code installed.** This entire stack is designed to be deployed and
   managed through Claude Code — you will not need to write any code yourself.
 - **Meta Business Manager**: a Pixel ID and a Conversions API access token.
-- **GA4**: a Measurement ID (`G-XXXXXXXXXX`) and a Measurement Protocol API
-  secret.
+- **GA4 (optional)**: a Measurement ID (`G-XXXXXXXXXX`) and a Measurement
+  Protocol API secret. Skip if you don't plan to use GA4.
 - **Google Ads (optional)**: developer token, OAuth credentials, and at least
   one conversion action ID. Skip this if you don't run Google Ads.
 - **A sales platform account** if you're building a sales page (Eduzz,
@@ -55,9 +58,12 @@ This is **not** for you if:
 
 1. Unpack this folder somewhere on your computer.
 2. Open that folder in **Claude Code**.
-3. Say: **"set up my tracking"**. Claude Code will invoke the `deploy-stack`
-   skill and walk you through Cloudflare bootstrap, secrets collection, and
-   initial deployment. Expect the full process to take about 30 minutes.
+3. Say: **"set up my tracking"**. Claude Code invokes the `deploy-stack`
+   skill, which creates your D1 database via `wrangler`, spins up a fresh
+   private GitHub repo and pushes the code, then walks you step by step
+   through the Cloudflare dashboard — creating the Pages project, binding
+   the D1, and adding your environment variables. Expect about 30 minutes
+   end-to-end.
 4. When it finishes, say: **"check my tracking is working"**. Claude Code will
    invoke the `verify-tracking` skill and walk you through the 6-step
    integrity verification so you know every link in the chain is wired up

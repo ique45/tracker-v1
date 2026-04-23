@@ -145,7 +145,7 @@ live under `.claude/skills/<name>/SKILL.md`.
 
 | Skill | Trigger phrases | What it does |
 |---|---|---|
-| `deploy-stack` | "set this up", "deploy this", "I just downloaded this", "first-time setup" | Phase A bootstrap: creates Pages project, D1 database, applies migrations, collects secrets interactively, deploys. Runs `wrangler` commands directly. |
+| `deploy-stack` | "set this up", "deploy this", "I just downloaded this", "first-time setup" | Phase A bootstrap, hybrid flow: uses `wrangler` only for D1 (create + migrations) and generates `wrangler.toml`; creates a private GitHub repo via `gh` and pushes; generates `DASH_KEY` and per-platform webhook slugs locally; hands off to the recipient for manual Pages-project creation, D1 binding, and env-var entry in the Cloudflare dashboard. Page deploys are driven by `git push` from then on. |
 | `verify-tracking` | "is my tracking working", "check my tracking", "verify the chain" | Phase B: walks the 6-checkpoint Level 1 integrity chain (cookie → sessions row → checkout URL → webhook arrival → D1 lookup → platform receipt). |
 | `add-page` | "add a lead page", "add a sales page", "create a landing page" | Copies the matching starter from `examples/`, reads `docs/page-types/*.md`, wires routing and platform-specific snippets. |
 | `add-sales-platform` | "I use [platform not in Eduzz/Hotmart/Kiwify]" | Creates a new webhook adapter following `docs/platforms/_template.md` by copying an existing adapter as the structural reference. |

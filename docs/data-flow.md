@@ -176,7 +176,7 @@ raw_email:        alice@example.com
 
 **Trigger**: page load on any page that imports the sales-page pattern.
 
-**Request body** (from `examples/sales-page/starter.html`):
+**Request body** (from `examples/sales-page/index.html`):
 ```json
 {
   "trk": "f2d1a9c0-3e8b-4a2e-9c1d-3e7b8f4a2c6d",
@@ -226,7 +226,7 @@ created_at:       1729600500
 
 **Trigger**: user clicks the CTA on the sales page.
 
-**What happens** (in `starter.html`):
+**What happens** (in `index.html`):
 
 1. Fire `InitiateCheckout` via `sendBeacon('/tracker', …)` — fires Meta
    CAPI + GA4 even if the page unloads immediately.
@@ -244,7 +244,7 @@ https://sun.eduzz.com/1234567?trk=f2d1a9c0-3e8b-4a2e-9c1d-3e7b8f4a2c6d
 **Failure modes**:
 
 - **`trk` missing from destination URL** → check the platform dropdown in
-  `starter.html` (`CHECKOUT_PLATFORM`). If the recipient's checkout URL
+  `index.html` (`CHECKOUT_PLATFORM`). If the recipient's checkout URL
   already contains `?trk=…` as a static value, the page's dynamic `trk` is
   being overwritten. The recipient needs to remove the static one from
   their platform dashboard.
@@ -303,12 +303,14 @@ after the buyer completes payment.
   hitting the adapter but the slug doesn't match `<PLATFORM>_WEBHOOK_SLUG`.
   Either the recipient pasted the wrong URL into the platform dashboard,
   or the env var is set to a different value. Compare the URL shown in
-  the platform's webhook logs to the output of `wrangler pages secret
-  list --project-name <name>`.
+  the platform's webhook logs to the env-var value in the Cloudflare
+  dashboard → Pages project → Settings → Environment variables.
 - **500 with "webhook not configured" in response body** → the slug env
   var isn't set on this deploy. Re-run the slug-generation step of
-  `deploy-stack` or set it manually via `wrangler pages secret put
-  <PLATFORM>_WEBHOOK_SLUG`.
+  `deploy-stack`, or set it manually in the Cloudflare dashboard →
+  Pages project → Settings → Environment variables → Add variable, with
+  name `<PLATFORM>_WEBHOOK_SLUG` and the UUID as value, then retry the
+  latest deployment so the binding takes effect.
 - **`checkoutData` empty in `_core.js`** → `trk` lookup failed. Either the
   buyer's session never wrote `checkout_sessions` (Hop 3 broke) or the
   platform sent back the wrong value in the custom field (Hop 4 broke).

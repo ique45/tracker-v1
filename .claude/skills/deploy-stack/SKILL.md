@@ -1,223 +1,278 @@
 ---
 name: deploy-stack
-description: First-time bootstrap of the tracking stack into a recipient's Cloudflare account. Use when the recipient says "set this up", "deploy this", "I just downloaded this", "first-time setup", "get this running", "install", "configure", or when the repo looks freshly unpacked (no wrangler.toml, .dev.vars missing, no prior deployment). Creates the Cloudflare Pages project, creates and binds the D1 database, applies all migrations, collects required and optional secrets interactively, and runs the first deploy. Drives wrangler CLI directly.
+description: First-time bootstrap of the tracking stack into a recipient's Cloudflare account. Use when the recipient says "set this up", "deploy this", "I just downloaded this", "first-time setup", "get this running", "install", "configure", or when the repo looks freshly unpacked (no wrangler.toml, .dev.vars missing, no prior deployment). Hybrid flow: wrangler only for D1 (create, bind config, migrations); the recipient creates the Cloudflare Pages project manually in the dashboard, connects it to a new private GitHub repo, binds the D1 manually, and sets env vars manually. Generates slugs and the DASH_KEY locally. Creates the GitHub repo via `gh` CLI and pushes.
 ---
 
 # Skill: deploy-stack
 
 You are helping a recipient deploy this tracking stack into their own Cloudflare account for the first time. The recipient is almost certainly a non-developer. Talk to them plainly, explain *why* each step matters in one sentence, and don't dump raw command output on them — summarize.
 
-This skill runs once per recipient. When it's done, they should have a live Pages URL with the database bound, migrations applied, required secrets set, and an initial deploy completed. The next step for them after this skill is the `verify-tracking` skill.
+This skill runs once per recipient. When it's done, they should have:
+- A **private GitHub repo** containing the stack code on `main`
+- A **Cloudflare Pages project** connected to that repo (production branch = `main`)
+- A **D1 database** created and bound to the Pages project (binding name = `DB`)
+- All **required env vars** set in the Pages project via the Cloudflare dashboard
+
+The deployment model is hybrid by design:
+- **wrangler** is used **only** for D1 (login, database create, migrations) and to generate `wrangler.toml` for local development.
+- **git** drives page deploys — a push to `main` triggers Cloudflare Pages to redeploy automatically.
+- **The recipient** does the manual connective work in the Cloudflare dashboard: creates the Pages project, binds the D1, adds env vars. This preserves the recipient's control over their infrastructure and keeps the skill from silently running one-shot CLI commands that are hard to reason about or reverse.
+
+The next step for them after this skill is the `verify-tracking` skill — but only after they have at least one page deployed (call `add-page` first).
 
 ## Before you start
 
 Confirm with the recipient:
 1. They have a Cloudflare account (free tier is fine).
-2. They know how to open a browser window (they'll need to for `wrangler login`).
-3. `wrangler` is installed. Run `wrangler --version`. If it errors or the version is older than 4.x, tell them to run `npm install -g wrangler` and re-run this skill after.
-
-If they don't have Node / npm installed at all, stop and tell them how to install Node (point at [nodejs.org](https://nodejs.org), LTS version). Claude Code can guide them through the install but should not attempt it silently — they'll need admin rights on their own machine.
+2. They have a GitHub account and `gh` CLI authenticated. Run `gh auth status` to verify. If missing or unauthenticated, tell them to install (`brew install gh` on macOS, or follow [cli.github.com](https://cli.github.com)) and run `gh auth login`.
+3. `wrangler` is reachable via `npx wrangler@latest --version`. Node/npm must be installed; if missing, stop and point at [nodejs.org](https://nodejs.org). Global install of wrangler is not required — `npx wrangler@latest` works in both cases and is the form used throughout this skill.
+4. The repo is a git repository (`.git/` exists in the project root). The template ships as one; if the recipient somehow unpacked it without, run `git init && git add -A && git commit -m "Initial import of tracking stack template"` before Step 7.
 
 ## Step 1 — Login to Cloudflare
 
 ```bash
-wrangler login
+npx wrangler@latest login
 ```
 
 This opens their browser. Wait for them to confirm "Allow" in the Cloudflare dashboard. When wrangler prints "Successfully logged in", move on.
 
 ## Step 2 — Pick a project name
 
-Ask the recipient: "What should we call this tracking project? This becomes part of your URL (e.g. `my-tracking.pages.dev`). Use lowercase letters, numbers, and hyphens only. Examples: `acme-tracking`, `brand-ads-2026`."
+Ask: "What should we call this tracking project? It becomes part of three things at once — your public URL (`<name>.pages.dev`), your D1 database (`<name>-db`), and your GitHub repo. Use lowercase letters, numbers, hyphens only. Examples: `acme-tracking`, `brand-ads-2026`."
 
 Store the answer as `PROJECT_NAME`. The D1 database will be named `${PROJECT_NAME}-db`.
 
-## Step 3 — Create the Cloudflare Pages project
+## Step 3 — Create the D1 database
 
 ```bash
-wrangler pages project create ${PROJECT_NAME} --production-branch main
+npx wrangler@latest d1 create ${PROJECT_NAME}-db
 ```
 
-If wrangler errors with "project already exists", ask the recipient: "A project with this name already exists in your Cloudflare account. Do you want to reuse it, or pick a different name?" If they reuse, continue. If they pick a new name, restart from Step 2.
-
-## Step 4 — Create the D1 database
-
-```bash
-wrangler d1 create ${PROJECT_NAME}-db
-```
-
-**Parse the output carefully.** Wrangler prints the binding snippet including `database_id = "..."` on success. Extract that UUID. You'll need it for the next step.
+**Parse the output carefully.** Wrangler prints a snippet including `database_id = "..."` on success. Extract that UUID — you'll use it in the next step.
 
 If creation fails with "already exists", run:
 
 ```bash
-wrangler d1 list
+npx wrangler@latest d1 list
 ```
 
-...find the matching row, and use its `database_id`. Tell the recipient you're reusing the existing database.
+...find the matching row, use its `database_id`, and tell the recipient you're reusing the existing database.
 
-## Step 5 — Write `wrangler.toml` from the template
+## Step 4 — Write `wrangler.toml` from the template
 
-The repo ships `wrangler.toml.example` with three `__REPLACE_ME_*__` placeholders. Read that file, substitute:
-
-- `__REPLACE_ME_PROJECT_NAME__` → the recipient's `PROJECT_NAME` from Step 2
+Read `wrangler.toml.example` and substitute:
+- `__REPLACE_ME_PROJECT_NAME__` → `PROJECT_NAME` from Step 2
 - `__REPLACE_ME_DB_NAME__` → `${PROJECT_NAME}-db`
-- `__REPLACE_ME_DB_ID__` → the UUID from Step 4
+- `__REPLACE_ME_DB_ID__` → the UUID from Step 3
 
-Write the result to `wrangler.toml`. This file is gitignored; do not commit it.
+Write the result to `wrangler.toml`. This file is gitignored; it stays local.
 
-Confirm by reading `wrangler.toml` back and showing the recipient the non-placeholder contents.
+**Important context for the recipient**: Cloudflare Pages with a git integration does NOT read this `wrangler.toml` at deploy time. The file exists so that (a) `wrangler d1 migrations apply` can find the database, and (b) `wrangler pages dev` works for local development. The production D1 binding will be configured manually via the Cloudflare dashboard in Step 9.
 
-## Step 6 — Apply migrations
+## Step 5 — Apply migrations
 
 ```bash
-wrangler d1 migrations apply ${PROJECT_NAME}-db --remote
+npx wrangler@latest d1 migrations apply ${PROJECT_NAME}-db --remote
 ```
 
-You should see 13 migrations applied (0001-0014, missing 0005 which is intentional). If any migration fails, stop and investigate — do not try to work around it. Likely causes: stale local wrangler state, network timeout, or a schema conflict if they reused an existing database with data in it.
+You should see all migrations applied successfully (numbered 0001-00XX with 0005 intentionally missing). If any migration fails, stop and investigate — do not try to work around it. Likely causes: stale local wrangler state, network timeout, or a schema conflict if they reused an existing database with data in it.
 
-## Step 7 — Collect required secrets
+## Step 6 — Generate local secrets
 
-These five are non-negotiable. Prompt the recipient for each, one at a time, and explain what it is. Set each via:
+Three values don't come from any external service — you generate them locally and print them to the recipient at the handoff.
+
+**Always generate**:
 
 ```bash
-wrangler pages secret put ${SECRET_NAME} --project-name ${PROJECT_NAME}
+DASH_KEY=$(openssl rand -hex 32)
 ```
 
-`wrangler pages secret put` opens an interactive prompt. Tell the recipient to paste the value when prompted (it won't echo).
+`DASH_KEY` gates `/dash` and the read-only `/api/*` endpoints. Tell the recipient to save it in a password manager — it's the only way to open the dashboard.
 
-| Secret | What it is | Where to find it |
-|---|---|---|
-| `META_PIXEL_ID` | Your Meta Pixel's numeric ID | Meta Events Manager → your Pixel → top of the page |
-| `META_ACCESS_TOKEN` | A CAPI access token for that Pixel | Meta Events Manager → your Pixel → Settings → "Generate access token" |
-| `GA4_MEASUREMENT_ID` | Your GA4 Measurement ID, format `G-XXXXXXXXXX` | GA4 Admin → Data Streams → your stream → top right |
-| `GA4_API_SECRET` | A GA4 Measurement Protocol API secret | GA4 Admin → Data Streams → your stream → Measurement Protocol API secrets → Create |
-| `DASH_KEY` | A random string gating the dashboard | Generate one: `openssl rand -hex 32` or let the recipient pick a strong password |
+**Sales-platform webhook slugs** — ask: "Which sales platforms will you use — Eduzz, Hotmart, Kiwify, none of those, or not sure yet?"
 
-For `DASH_KEY`, offer to generate one: tell them the value after you set it so they can save it in their password manager. The dashboard URL they open later is `https://<project>.pages.dev/dash/?key=<DASH_KEY>`.
-
-## Step 8 — Offer optional secrets
-
-Ask the recipient: "The stack has several optional integrations. I'll list them — tell me which you want to set up now, and we can skip the rest (you can add them later)."
-
-**Meta test events** — for debugging before going live:
-- `META_TEST_EVENT_CODE` — any test code from Meta Events Manager → Test Events tab
-
-**Timezone for Google Ads conversions** — defaults to São Paulo (`-03:00`):
-- `TIMEZONE_OFFSET` — ISO offset like `-05:00`, `+00:00`, etc. Must match the recipient's Google Ads account timezone or conversions get rejected.
-
-**Default phone country code** — defaults to Brazil (`55`):
-- `DEFAULT_COUNTRY_CODE` — the recipient's ISO calling code without any `+` (e.g. `1` for US/Canada, `44` for UK, `351` for Portugal, `34` for Spain). Meta CAPI requires phone numbers to include country code + area code before hashing, so we prepend this to any lead-form submission that looks locally formatted. Skip only if the recipient is in Brazil. Tell the recipient: "If your audience is mostly in one country, set this to that country's calling code."
-
-**Google Ads conversion uploads** (all six required together — if any one is missing, Google Ads integration silently skips):
-- `GOOGLE_ADS_CLIENT_ID`
-- `GOOGLE_ADS_CLIENT_SECRET`
-- `GOOGLE_ADS_REFRESH_TOKEN`
-- `GOOGLE_ADS_DEVELOPER_TOKEN`
-- `GOOGLE_ADS_CUSTOMER_ID` (format `1234567890`, no hyphens)
-- `GOOGLE_ADS_LOGIN_CUSTOMER_ID` (MCC/manager account ID, still required even without MCC — use the same value as `GOOGLE_ADS_CUSTOMER_ID` if they don't use MCC)
-
-If the recipient doesn't already have a developer token, tell them "This takes a few days to get approved by Google. Skip for now — we can add Google Ads later."
-
-**Encharge** (email marketing automation):
-- `ENCHARGE_API_KEY` — from Encharge → Apps → HTTP API
-
-**ManyChat** (WhatsApp / Messenger):
-- `MANYCHAT_KEY` — from ManyChat → Settings → API → Your API Key
-
-**Ad spend sync via cron** (so the dashboard shows Meta spend, CPA, ROAS):
-- `SYNC_SECRET` — random string, e.g. `openssl rand -hex 32`
-- `META_ADS_ACCESS_TOKEN` — Meta Marketing API token (system user recommended, see `docs/ad-spend-sync.md`)
-- `META_ADS_ACCOUNT_ID` — ad account ID, digits only, no `act_` prefix
-
-If they set ad spend secrets, remind them they still need to schedule the cron externally. Point them at `docs/ad-spend-sync.md` for the three cron provider walkthroughs (cron-job.org, GitHub Actions, EasyCron).
-
-**Per-platform webhook slugs** (set only the ones matching the sales platforms they actually use):
-
-Sales-platform webhooks hit the stack at `/webhook/<platform>/<slug>`, where
-`<slug>` is a random 36-character UUID that gates the endpoint. It's the
-only thing standing between a public URL and arbitrary purchase
-injection, so treat it like a secret — but YOU generate it, the recipient
-doesn't need to find anything in any dashboard.
-
-Ask which sales platforms they use (Eduzz / Hotmart / Kiwify / none of
-those). For each YES, generate a fresh UUID and set it as the platform's
-slug secret:
+For each YES, generate a UUID:
 
 ```bash
-# Generate UUIDs (one per platform the recipient uses)
 EDUZZ_SLUG=$(uuidgen | tr '[:upper:]' '[:lower:]')
 HOTMART_SLUG=$(uuidgen | tr '[:upper:]' '[:lower:]')
 KIWIFY_SLUG=$(uuidgen | tr '[:upper:]' '[:lower:]')
-
-# Set each as a Cloudflare secret (recipient sees the prompt but we paste)
-echo "$EDUZZ_SLUG"   | wrangler pages secret put EDUZZ_WEBHOOK_SLUG   --project-name ${PROJECT_NAME}
-echo "$HOTMART_SLUG" | wrangler pages secret put HOTMART_WEBHOOK_SLUG --project-name ${PROJECT_NAME}
-echo "$KIWIFY_SLUG"  | wrangler pages secret put KIWIFY_WEBHOOK_SLUG  --project-name ${PROJECT_NAME}
 ```
 
-After setting, **capture and display the full webhook URLs back to the
-recipient** — they'll paste these into each platform's dashboard in a
-later step. This is the ONLY time the slugs are surfaced; they should
-save them in a password manager alongside `DASH_KEY`.
+These are the only thing standing between a public URL and arbitrary purchase injection, so treat them like secrets. The recipient will paste the corresponding full webhook URL into each platform's dashboard later.
 
-```
-Eduzz webhook URL:   https://${PROJECT_NAME}.pages.dev/webhook/eduzz/${EDUZZ_SLUG}
-Hotmart webhook URL: https://${PROJECT_NAME}.pages.dev/webhook/hotmart/${HOTMART_SLUG}
-Kiwify webhook URL:  https://${PROJECT_NAME}.pages.dev/webhook/kiwify/${KIWIFY_SLUG}
-```
+If the recipient has no sales page and no sales platform yet, skip slug generation entirely — they can come back with `add-sales-platform` when they need one.
 
-Tell the recipient: "These URLs are how your sales platform reaches your
-tracking stack. Save them — you'll paste one into each platform's
-webhook configuration. If anyone else gets the URL, they can inject fake
-purchases into your reporting, so don't share them publicly."
+Keep every generated value in your context — Step 10 lists them back to the recipient as part of the env-var checklist.
 
-## Step 9 — Initial deploy
+## Step 7 — Create the GitHub repo and push
+
+Ask the recipient: "Should the repo be **private** (recommended — Cloudflare Pages connects to private repos via its GitHub App without extra steps) or **public**?"
+
+Default to private unless they say otherwise.
+
+Confirm there's nothing embarrassing to push (run `git status` — the template's `.gitignore` already covers `wrangler.toml`, `.dev.vars`, and `.env*`; nothing with real secrets should be staged).
+
+If the repo has no remote yet, create it in a single shot:
 
 ```bash
-wrangler pages deploy --project-name ${PROJECT_NAME}
+GH_USER=$(gh api user -q .login)
+gh repo create ${GH_USER}/${PROJECT_NAME} --private --source=. --remote=origin --push
 ```
 
-Wrangler prints a URL on success (something like `https://${PROJECT_NAME}.pages.dev`). Capture it. If the deploy fails, the most common causes are:
+(Omit `--private` and pass `--public` if the recipient chose public.)
 
-- A secret was set with a trailing newline — re-run `wrangler pages secret put` for the suspect one.
-- `wrangler.toml` still has a `__REPLACE_ME__` placeholder — go back to Step 5.
-- The account doesn't have Pages enabled — tell the recipient to visit dash.cloudflare.com/pages once to accept terms.
+This creates the repo on GitHub, adds it as `origin`, and pushes `main`. Print the repo URL back: `https://github.com/${GH_USER}/${PROJECT_NAME}`.
 
-## Step 10 — Report and hand off
+If the repo already has an `origin` and uncommitted work, commit first with a sensible message (e.g. `Initial deploy of tracking stack`) and then `git push -u origin main`.
 
-Show the recipient a short summary:
+## Step 8 — Manual: create the Cloudflare Pages project
+
+This is the first of four steps the recipient does in their own browser. Walk them through them one at a time; don't overwhelm them with the whole list at once.
+
+Tell them:
+
+> In the Cloudflare dashboard: **Workers & Pages → Create → Pages → Connect to Git**.
+>
+> 1. If this is your first Pages project, Cloudflare will ask to install its GitHub App on your account — authorize it for the new repo (or for all repos, your call).
+> 2. Pick the repo `${GH_USER}/${PROJECT_NAME}`.
+> 3. **Project name**: `${PROJECT_NAME}` (must match — it controls the `.pages.dev` subdomain).
+> 4. **Production branch**: `main`.
+> 5. **Framework preset**: None.
+> 6. **Build command**: (leave empty).
+> 7. **Build output directory**: `/` (just a forward slash).
+>
+> Click "Save and Deploy". The first deploy will probably fail or serve a blank page because the D1 binding and env vars aren't set yet. That's expected — the next two steps fix it.
+
+Wait for the recipient to confirm the project was created before moving on. Don't move past this until they say "OK" or "done".
+
+## Step 9 — Manual: bind the D1 database
+
+Tell them:
+
+> In the same Pages project: **Settings → Bindings → Add → D1 database**.
+>
+> - **Variable name**: `DB` (exactly this — the code reads `env.DB`)
+> - **D1 database**: `${PROJECT_NAME}-db`
+> - **Apply to**: Production
+>
+> Save.
+
+If they use Preview deployments and want them to hit the same DB (usually yes for a single-recipient stack), tell them to repeat the binding for Preview.
+
+## Step 10 — Manual: add environment variables
+
+Give the recipient this checklist, prefilled with every value you generated. Tell them:
+
+> In the same Pages project: **Settings → Environment variables → Add variable**. Add each row below under **Production**. Click **Encrypt** on the rows marked 🔒 — once encrypted, the value won't be visible again.
+
+**Required** — the stack won't fire server-side events without these:
+
+| Name | Value | How to get it | Encrypt? |
+|---|---|---|---|
+| `META_PIXEL_ID` | numeric Pixel ID | Meta Events Manager → your Pixel → top of page | no |
+| `META_ACCESS_TOKEN` | long-lived CAPI token | Events Manager → your Pixel → Settings → **Generate access token** | 🔒 |
+| `DASH_KEY` | `<the value you generated in Step 6>` | generated above | 🔒 |
+
+**Optional — add only the rows the recipient actually wants now:**
+
+*Meta debugging*:
+- `META_TEST_EVENT_CODE` — any code from Events Manager → Test Events. Events with this code land in the Test Events tab (separate pipeline, doesn't affect production attribution).
+
+*Timezone / locale*:
+- `TIMEZONE_OFFSET` — default `-03:00` (São Paulo). Set to the recipient's ISO offset (e.g. `-05:00`, `+00:00`) if they're elsewhere. Must match their Google Ads account timezone or conversions get rejected.
+- `DEFAULT_COUNTRY_CODE` — default `55` (Brazil). Prepended to local-format phone numbers before hashing for Meta CAPI. Set to `1` (US/CA), `44` (UK), `351` (PT), etc. if audience is primarily there. Skip if Brazilian.
+
+*GA4* (both required together — if either is missing, GA4 silently skips):
+- `GA4_MEASUREMENT_ID` — from GA4 Admin → Data Streams → your stream → top right (`G-XXXXXXXXXX`)
+- `GA4_API_SECRET` 🔒 — GA4 Admin → Data Streams → your stream → **Measurement Protocol API secrets** → Create
+
+*Google Ads conversion uploads* (all six required together — any missing = integration silently skips):
+- `GOOGLE_ADS_CLIENT_ID`
+- `GOOGLE_ADS_CLIENT_SECRET` 🔒
+- `GOOGLE_ADS_REFRESH_TOKEN` 🔒
+- `GOOGLE_ADS_DEVELOPER_TOKEN` 🔒
+- `GOOGLE_ADS_CUSTOMER_ID` (format `1234567890`, no hyphens)
+- `GOOGLE_ADS_LOGIN_CUSTOMER_ID` (MCC/manager ID; use the same value as `CUSTOMER_ID` if no MCC)
+
+If the recipient doesn't have a developer token yet, tell them it takes a few days to get Google approval and skip for now — can add later.
+
+*Email/messaging automation*:
+- `ENCHARGE_API_KEY` 🔒 — from Encharge → Apps → HTTP API
+- `MANYCHAT_KEY` 🔒 — from ManyChat → Settings → API → Your API Key
+
+*Meta Ads spend sync* (so `/dash` shows Meta spend, CPA, ROAS):
+- `SYNC_SECRET` 🔒 — generate with `openssl rand -hex 32`
+- `META_ADS_ACCESS_TOKEN` 🔒 — Meta Marketing API token (system-user recommended; see `docs/ad-spend-sync.md`)
+- `META_ADS_ACCOUNT_ID` — ad account ID, digits only, no `act_` prefix
+
+If they set these, remind them they still need to schedule an external cron to hit `/api/sync/meta-ads` hourly. See `docs/ad-spend-sync.md` for three cron-provider walkthroughs.
+
+**Webhook slugs** — add ONLY for the platforms they said they'd use in Step 6. Hand over the full webhook URLs — these are what they paste into each platform's dashboard webhook config.
+
+| Platform | Env var | Value | Webhook URL to paste into the platform dashboard |
+|---|---|---|---|
+| Eduzz | `EDUZZ_WEBHOOK_SLUG` 🔒 | `<generated UUID>` | `https://${PROJECT_NAME}.pages.dev/webhook/eduzz/<slug>` |
+| Hotmart | `HOTMART_WEBHOOK_SLUG` 🔒 | `<generated UUID>` | `https://${PROJECT_NAME}.pages.dev/webhook/hotmart/<slug>` |
+| Kiwify | `KIWIFY_WEBHOOK_SLUG` 🔒 | `<generated UUID>` | `https://${PROJECT_NAME}.pages.dev/webhook/kiwify/<slug>` |
+
+Tell the recipient: "These URLs are how each sales platform reaches your stack. Save them in a password manager — if anyone else gets a URL, they can inject fake purchases into your reporting."
+
+Wait for confirmation that all variables are saved before moving on.
+
+## Step 11 — Trigger a redeploy
+
+Env-var and binding changes don't apply to existing deployments. Two ways to redeploy:
+
+- **Preferred**: Cloudflare dashboard → Pages project → **Deployments** tab → find the most recent deployment → **Retry deployment**.
+- **Or**: make any commit to `main` and push — Cloudflare auto-deploys on every push.
+
+Wait for the deploy to turn green (~1-2 minutes for this stack). The URL is `https://${PROJECT_NAME}.pages.dev`.
+
+## Step 12 — Report and hand off
+
+Show the recipient a summary:
 
 ```
-✓ Project: ${PROJECT_NAME}
-✓ Live at:  https://${PROJECT_NAME}.pages.dev
-✓ D1:       ${PROJECT_NAME}-db (13 migrations applied)
-✓ Secrets:  <list the ones they set, not the values>
+✓ Project:      ${PROJECT_NAME}
+✓ Live at:      https://${PROJECT_NAME}.pages.dev
+✓ GitHub:       https://github.com/${GH_USER}/${PROJECT_NAME}  (private)
+✓ D1:           ${PROJECT_NAME}-db (migrations applied, bound as DB)
+✓ Env vars set: <list the ones they configured, not the values>
 
 Dashboard: https://${PROJECT_NAME}.pages.dev/dash/?key=<DASH_KEY>
-            (Save the DASH_KEY somewhere safe — it's the only way to access the dashboard.)
+           (Save DASH_KEY in a password manager — it's the only way in.)
 
 Next steps:
-  1. Add your first lead or sales page — say "add a lead page" or "add a sales page".
-  2. Run "verify tracking" to walk the 6-checkpoint integrity chain.
+  1. Add your first page — say "add a lead page" or "add a sales page".
+  2. After a page is live and you've submitted/visited it once, run "verify tracking".
   3. If you use Meta Ads, configure ad-spend sync — see docs/ad-spend-sync.md.
 ```
 
-Do not suggest they run `verify-tracking` immediately if they have no pages yet. Tell them to add at least one page first, visit it once in a browser, then run `verify-tracking`. The verify skill needs real traffic data in D1 to check anything meaningful.
+Do NOT suggest running `verify-tracking` immediately. The verify skill needs real traffic in D1 to check anything meaningful — the recipient has to add a page and visit it first.
 
 ## Troubleshooting
 
-**"wrangler login" opens the browser but never returns.**
+**`wrangler login` opens the browser but never returns.**
 The recipient probably didn't click "Allow" in the Cloudflare dashboard. Ask them to check the browser tab.
 
-**"No account found"** or similar after login.
-The Cloudflare account might not have been fully activated yet. Tell them to visit [dash.cloudflare.com](https://dash.cloudflare.com) once to accept any pending terms.
+**"No account found" or similar after login.**
+The Cloudflare account might not be fully activated yet. Tell them to visit [dash.cloudflare.com](https://dash.cloudflare.com) once to accept any pending terms.
+
+**`gh repo create` fails with "repository already exists on this account".**
+They probably created it manually earlier. Either delete it in GitHub (if empty and safe to wipe) and retry, or add the existing repo as origin manually: `git remote add origin https://github.com/<user>/<repo>.git && git push -u origin main`.
+
+**`npm install -g wrangler` fails with a permission error.**
+Skip it — this skill uses `npx wrangler@latest` throughout, which doesn't need global install.
+
+**Pages deploys, but `/dash/?key=…` returns 401.**
+Most likely `DASH_KEY` was pasted with a trailing space or newline. Edit the env var in the dashboard and re-paste carefully.
+
+**Pages deploys, but pages return blank / 404.**
+Likely the "Build output directory" was set to something other than `/`. Go to Pages project → Settings → Builds → Configure production deployments and set output to `/`.
 
 **Migrations apply but `sessions` table is empty after visiting a page.**
-The D1 binding isn't wired correctly. Re-read `wrangler.toml`, confirm `binding = "DB"` (not `PURCHASES_DB` or anything else), confirm `database_id` matches what `wrangler d1 list` shows for `${PROJECT_NAME}-db`.
-
-**Deploy succeeds but `/dash/?key=...` returns 401.**
-Most likely the recipient pasted the `DASH_KEY` with a trailing space or newline when setting the secret. Re-run `wrangler pages secret put DASH_KEY --project-name ${PROJECT_NAME}` and paste carefully.
+The D1 binding isn't wired. Re-check Pages → Settings → Bindings: the variable name must be `DB` (exactly), and the database must be `${PROJECT_NAME}-db`. After fixing, retry the deploy.
 
 **The recipient asks "is it working?"**
-That's `verify-tracking`'s job. Don't answer yourself — invoke that skill.
+That's `verify-tracking`'s job. Don't answer yourself — tell them to add a page first (via `add-page`), visit it, and then run `verify-tracking`.
