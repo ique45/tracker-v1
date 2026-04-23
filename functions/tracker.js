@@ -126,19 +126,36 @@ export async function onRequestPost(context) {
       sendToGA4({ body, gaClientId, gaSessionId, hashedEm, env }),
     ]);
 
-    // --- Extract Meta response details ---
-    let metaResponseBody = '';
-    let metaResponseOk = 0;
+    // --- Parse Meta result ---
+    let metaStatusCode = 0, metaResponseOk = 0, metaResponseBody = '', metaPayloadSent = null;
     if (results[0]?.status === 'fulfilled' && results[0].value) {
-      const metaRes = results[0].value;
-      metaResponseOk = metaRes.ok ? 1 : 0;
-      try {
-        metaResponseBody = await metaRes.text();
-      } catch (e) {
-        metaResponseBody = `Error reading response: ${e.message}`;
+      const v = results[0].value;
+      metaPayloadSent = v.payload;
+      if (v.skipped) {
+        metaResponseBody = `skipped: ${v.skipped}`;
+      } else if (v.response) {
+        metaStatusCode = v.response.status;
+        metaResponseOk = v.response.ok ? 1 : 0;
+        try { metaResponseBody = await v.response.text(); } catch (e) { metaResponseBody = `Read error: ${e.message}`; }
       }
     } else if (results[0]?.status === 'rejected') {
       metaResponseBody = `Fetch error: ${results[0].reason?.message || 'unknown'}`;
+    }
+
+    // --- Parse GA4 result ---
+    let ga4StatusCode = 0, ga4ResponseOk = 0, ga4ResponseBody = '', ga4PayloadSent = null;
+    if (results[1]?.status === 'fulfilled' && results[1].value) {
+      const v = results[1].value;
+      ga4PayloadSent = v.payload;
+      if (v.skipped) {
+        ga4ResponseBody = `skipped: ${v.skipped}`;
+      } else if (v.response) {
+        ga4StatusCode = v.response.status;
+        ga4ResponseOk = v.response.ok ? 1 : 0;
+        try { ga4ResponseBody = await v.response.text(); } catch (e) { ga4ResponseBody = `Read error: ${e.message}`; }
+      }
+    } else if (results[1]?.status === 'rejected') {
+      ga4ResponseBody = `Fetch error: ${results[1].reason?.message || 'unknown'}`;
     }
 
     const rawEmail = userData.em || '';
@@ -161,21 +178,21 @@ export async function onRequestPost(context) {
                 pixel_was_blocked, fbp_source, fbc_source, fbclid_source,
                 ga_cookie_present, ga_client_id_fallback, itp_cookie_extended,
                 is_bot, bot_reason, consent_status,
-                sent_to_meta, meta_response_ok,
-                sent_to_ga4, ga4_response_ok,
+                sent_to_meta, meta_status_code, meta_response_ok, meta_response_body, meta_payload_sent,
+                sent_to_ga4, ga4_status_code, ga4_response_ok, ga4_response_body, ga4_payload_sent,
                 has_email, has_phone, has_name,
-                meta_response_body, raw_email
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                raw_email
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).bind(
               sessionId, body.event_name, body.event_id, body.event_time,
               browserInfo.browser, browserInfo.version, browserInfo.os, browserInfo.isMobile ? 1 : 0,
               pixelWasBlocked, fbpSource, fbcSource, fbclidSource,
               gaCookiePresent, gaClientIdFallback, fbpSource === 'middleware_http' ? 1 : 0,
               isBot ? 1 : 0, botReason, body.consent_status || 'unknown',
-              isBot ? 0 : 1, metaResponseOk,
-              isBot ? 0 : 1, results[1]?.status === 'fulfilled' ? 1 : 0,
+              isBot ? 0 : 1, metaStatusCode, metaResponseOk, metaResponseBody, metaPayloadSent ?? null,
+              isBot ? 0 : 1, ga4StatusCode, ga4ResponseOk, ga4ResponseBody, ga4PayloadSent ?? null,
               hashedEm ? 1 : 0, hashedPh ? 1 : 0, (hashedFn || hashedLn) ? 1 : 0,
-              metaResponseBody, rawEmail
+              rawEmail
             ).run();
           }
         } catch (e) {
@@ -201,7 +218,9 @@ export async function onRequestPost(context) {
 // META CAPI
 // -------------------------------------------------------
 async function sendToMeta({ body, clientIp, userAgent, fbp, fbc, hashedEm, hashedFn, hashedLn, hashedPh, hashedExternalId, sessionData, env }) {
-  if (!env.META_PIXEL_ID || !env.META_ACCESS_TOKEN) return;
+  if (!env.META_PIXEL_ID || !env.META_ACCESS_TOKEN) {
+    return { skipped: 'missing meta env', payload: null, response: null };
+  }
 
   const metaUserData = {
     client_ip_address: clientIp,
@@ -231,21 +250,27 @@ async function sendToMeta({ body, clientIp, userAgent, fbp, fbc, hashedEm, hashe
     payload.test_event_code = env.META_TEST_EVENT_CODE;
   }
 
-  return fetch(`https://graph.facebook.com/v25.0/${env.META_PIXEL_ID}/events?access_token=${env.META_ACCESS_TOKEN}`, {
+  const payloadJson = JSON.stringify(payload);
+  const response = await fetch(`https://graph.facebook.com/v25.0/${env.META_PIXEL_ID}/events?access_token=${env.META_ACCESS_TOKEN}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: payloadJson,
   });
+  return { payload: payloadJson, response };
 }
 
 // -------------------------------------------------------
 // GA4 MEASUREMENT PROTOCOL — CONVERSIONS ONLY
 // -------------------------------------------------------
 async function sendToGA4({ body, gaClientId, gaSessionId, hashedEm, env }) {
-  if (!env.GA4_MEASUREMENT_ID || !env.GA4_API_SECRET) return;
+  if (!env.GA4_MEASUREMENT_ID || !env.GA4_API_SECRET) {
+    return { skipped: 'missing ga4 env', payload: null, response: null };
+  }
 
   const eventName = (body.event_name || '').toLowerCase();
-  if (eventName === 'pageview' || eventName === 'page_view') return;
+  if (eventName === 'pageview' || eventName === 'page_view') {
+    return { skipped: 'pageview', payload: null, response: null };
+  }
 
   const ga4EventName = eventName === 'lead' ? 'generate_lead'
     : eventName === 'purchase' ? 'purchase'
@@ -268,11 +293,13 @@ async function sendToGA4({ body, gaClientId, gaSessionId, hashedEm, env }) {
     payload.user_properties = { email: { value: hashedEm } };
   }
 
-  return fetch(`https://www.google-analytics.com/mp/collect?measurement_id=${env.GA4_MEASUREMENT_ID}&api_secret=${env.GA4_API_SECRET}`, {
+  const payloadJson = JSON.stringify(payload);
+  const response = await fetch(`https://www.google-analytics.com/mp/collect?measurement_id=${env.GA4_MEASUREMENT_ID}&api_secret=${env.GA4_API_SECRET}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: payloadJson,
   });
+  return { payload: payloadJson, response };
 }
 
 // -------------------------------------------------------
