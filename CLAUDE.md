@@ -133,8 +133,8 @@ Hop-by-hop debugging bible: `docs/data-flow.md`
 | `migrations/` | D1 schema, numbered 0001-0015 (0005 intentionally skipped). Applied via `wrangler d1 migrations apply`. Includes `sessions`, `checkout_sessions`, `event_log`, `purchase_log`, `purchase_items`, `ad_spend`, `sync_log`. |
 | `config/products.js` | Per-product integration config: Encharge tag, ManyChat tag ID, Google Ads conversion action. Keyed by `platform → productId`. Tracked in git; no secrets. |
 | `dash/index.html` | Self-contained dashboard. Tailwind + Chart.js via CDN, no build step. Auth via `DASH_KEY` query param. Click any Lead or Purchase row to inspect the exact payload sent to Meta/GA4/Google Ads and the response. |
-| `examples/lead-form-page/index.html` | Lead form starter (name + phone + email). Demonstrates the full pixel+CAPI dedup pattern. |
-| `examples/sales-page/starter.html` | Sales page starter. Demonstrates `trk` generation, `checkout-session` persistence, platform-switchable checkout URL rewriting. |
+| `examples/lead-form-page/index.html` | Lead form starter (email-only by default; add phone/name per `docs/page-types/lead-form-page.md`). Demonstrates the full pixel+CAPI dedup pattern. |
+| `examples/sales-page/index.html` | Sales page starter. Demonstrates `trk` generation, `checkout-session` persistence, platform-switchable checkout URL rewriting. Ships with `assets/hero.webp` placeholder. |
 | `docs/` | Reference — architecture, data flow, schema, per-page-type recipes, per-platform notes, ad-spend sync setup. |
 | `.claude/skills/` | Procedural walkthroughs invoked by name when the recipient's request matches. |
 

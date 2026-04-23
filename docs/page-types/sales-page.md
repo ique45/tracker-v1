@@ -5,7 +5,7 @@ checkout with a `trk` identifier appended. The `trk` is the critical
 thread that lets the webhook handler (hours later, on the platform's
 schedule) reach back and attribute the sale to the original visit.
 
-Starter lives at `examples/sales-page/starter.html`.
+Starter lives at `examples/sales-page/index.html`.
 
 ## What the page must do
 

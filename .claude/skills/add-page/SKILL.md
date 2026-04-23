@@ -57,10 +57,11 @@ mkdir -p <path>
 cp examples/lead-form-page/index.html <path>/index.html
 ```
 
-**For a sales page**:
+**For a sales page** (ships with an `assets/hero.webp` placeholder
+image — copy the whole folder so the hero image comes along):
 ```bash
 mkdir -p <path>
-cp examples/sales-page/starter.html <path>/index.html
+cp -R examples/sales-page/. <path>/
 ```
 
 ## Step 4 — Read the matching recipe
@@ -86,31 +87,39 @@ Open `<path>/index.html` and edit the values the recipient must set
 
 **Lead form** — ask the recipient for:
 - Meta Pixel ID (numeric) → replace `YOUR_META_PIXEL_ID`
-- GA4 Measurement ID (`G-XXXXXXXXXX`) → replace both occurrences
+- GA4 Measurement ID (`G-XXXXXXXXXX`) → replace both occurrences. If the
+  recipient isn't using GA4, tell them to delete the two GA4 `<script>`
+  blocks in the `<head>` entirely — leaving the placeholder `G-XXXXXXXXXX`
+  will 404 the /scripts/gtag.js proxy and spam the browser console.
 
 **Sales page** — ask for the lead-form values PLUS:
 - Checkout URL (from the sales platform's product settings) → replace
-  `CHECKOUT_URL` near the top of the `<script>` block
+  `CHECKOUT_URL` near the top of the `<script>` block at the bottom
 - Which platform drives checkout → set `CHECKOUT_PLATFORM` to `'eduzz'`,
   `'hotmart'`, or `'kiwify'`
+- The placeholder `assets/hero.webp` image — tell the recipient to
+  swap in their own image at the same filename, or edit the two
+  `assets/hero.webp` references (the `<link rel="preload">` and the
+  `<img src>`) if they want a different filename.
 
 Do NOT change any other code unless the recipient explicitly asks and
 you've re-read the recipe doc to confirm it's safe. The scripts in the
 starters are deliberately minimal and tested.
 
-### Lead form: pick which PII fields the form collects
+### Lead form: optionally collect phone and/or name
 
-Ask which fields they want:
-- Email only (shortest form, lowest friction)
-- Email + phone (WhatsApp funnels)
-- Email + phone + name (the starter default — highest Advanced Matching
-  coverage)
+The starter is **email-only by default** — one input, `user_data: { em: email }`
+on submit. That's the lowest-friction option.
 
-For email-only, remove the `phone` and `name` `<div>`-wrapped inputs and
-trim the submit handler's `user_data` to `{ em: email }`.
+Ask whether the recipient wants to also collect phone and/or name (both
+boost Meta Advanced Matching coverage at the cost of a longer form):
 
-For email + phone, remove the `name` input and trim `user_data` to
-`{ em: email, ph: phone }`.
+- **Email + phone** (WhatsApp funnels): add a `<input type="tel" id="phone">`
+  inside the form, read it on submit, and extend `user_data` to
+  `{ em: email, ph: phone }`.
+- **Email + phone + name**: also add a `<input type="text" id="name">`,
+  split the value on whitespace, and extend `user_data` to
+  `{ em: email, fn: firstName, ln: lastName, ph: phone }`.
 
 Keep the Meta key names exact: `em`, `fn`, `ln`, `ph`. Never invent new
 keys — see the recipe doc.

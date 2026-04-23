@@ -3,8 +3,9 @@
 A lead form page captures a visitor's contact details and fires a `Lead`
 event to Meta CAPI + GA4 Measurement Protocol. There is exactly one recipe
 for this — the only thing that varies is which PII fields the form
-collects. The starter in `examples/lead-form-page/index.html` collects
-name + email + phone; drop fields you don't want.
+collects. The starter in `examples/lead-form-page/index.html` is
+**email-only** by default (lowest friction); add `ph`/`fn`/`ln` fields
+if the funnel needs them.
 
 ## What the page must do
 
@@ -41,39 +42,43 @@ reads from those keys. Anything else silently becomes empty.
 
 ## PII field variants
 
-The three variants mentioned in the plan reduce to "which of `em`, `fn`,
-`ln`, `ph` you fill in". The starter shows the maximum-coverage case. To
-downsize:
+The three variants reduce to "which of `em`, `fn`, `ln`, `ph` you fill
+in". The starter ships the minimum case (just `em`); upsize by adding
+form inputs and extending the `user_data` payload.
 
-### Email-only (newsletter, content gate)
+### Email-only (newsletter, content gate — **starter default**)
 ```js
 user_data: {
   em: email,
 }
 ```
-Drop the `fn` / `ln` / `ph` inputs from the form entirely. Meta still
-matches on `em` alone.
+No extra inputs needed. Meta still matches on `em` alone — the Advanced
+Matching quality score drops vs. a fuller payload but the match rate is
+already usable.
 
 ### Email + phone (WhatsApp funnel)
+Add a `<input type="tel" id="phone" name="phone" required>` to the form
+and extend `user_data`:
 ```js
 user_data: {
   em: email,
   ph: phone,
 }
 ```
-Drop the name input. Phone gets normalized server-side — send whatever the
-user typed (`+55 (11) 98765-4321` becomes `5511987654321`).
+Phone gets normalized server-side — send whatever the user typed
+(`+55 (11) 98765-4321` becomes `5511987654321`).
 
 ### Email + phone + name (high-intent lead)
-This is what `examples/lead-form-page/index.html` ships. Full hash
-coverage maximizes Meta's Advanced Matching quality.
-
+Add a `<input type="text" id="name" name="name" required>` on top of the
+phone input, split on whitespace, and extend `user_data`:
 ```js
 const nameParts = name.trim().split(/\s+/);
 const fn = nameParts[0] || '';
 const ln = nameParts.slice(1).join(' ') || '';
 user_data: { em: email, fn, ln, ph: phone }
 ```
+Full hash coverage maximizes Meta's Advanced Matching quality at the
+cost of a longer form.
 
 ## The submit handler, annotated
 
@@ -99,7 +104,7 @@ form.addEventListener('submit', async (e) => {
       event_id: eventId,
       event_time: eventTime,
       event_source_url: window.location.href,
-      user_data: { em: email, fn, ln, ph: phone },
+      user_data: { em: email },
     }),
   });
 
