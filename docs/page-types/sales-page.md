@@ -147,9 +147,11 @@ right `product_id`.
    wrangler d1 execute <db> --remote --command "SELECT trk, utm_source, fbp, created_at FROM checkout_sessions ORDER BY created_at DESC LIMIT 1"
    ```
    The row should have `utm_source` matching the URL and `fbp` populated.
-4. Click the CTA. Watch DevTools briefly for the `/tracker` beacon, then
-   confirm the destination URL contains `?<paramName>=<trk>` with the
-   same UUID you saw in step 3.
+4. Click the price-card CTA (the one with `id="checkout-btn"` — the hero
+   and final-CTA buttons in the starter are scroll-to-`#preco` anchors
+   and don't fire checkout). Watch DevTools briefly for the `/tracker`
+   beacon, then confirm the destination URL contains `?<paramName>=<trk>`
+   with the same UUID you saw in step 3.
 5. Complete a test purchase on the platform.
 6. Query `purchase_log`:
    ```

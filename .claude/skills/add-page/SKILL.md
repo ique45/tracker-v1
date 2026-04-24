@@ -176,10 +176,14 @@ Hop 1 and walk forward until you find the break.
    wrangler d1 execute <db-name> --remote --command \
      "SELECT trk, utm_source, fbp FROM checkout_sessions ORDER BY created_at DESC LIMIT 1"
    ```
-5. Click the CTA. The destination URL should contain
-   `?<paramName>=<uuid>` where `<paramName>` matches the platform
-   (`trk` for Eduzz, `xcod` for Hotmart, `sck` for Kiwify) and `<uuid>`
-   matches the `trk` value from step 4.
+5. Click the **price-card CTA specifically** — the button with
+   `id="checkout-btn"` inside the `.price-card` block. The hero and
+   final-section CTAs are scroll-to-`#preco` anchors and intentionally
+   do NOT fire `InitiateCheckout` or rewrite the URL; only the price
+   card is wired to the checkout flow. The destination URL after the
+   click should contain `?<paramName>=<uuid>` where `<paramName>`
+   matches the platform (`trk` for Eduzz, `xcod` for Hotmart, `sck`
+   for Kiwify) and `<uuid>` matches the `trk` value from step 4.
 6. Tell the recipient to run one real test purchase (ideally via a
    100%-off coupon) to confirm the webhook chain. After the purchase,
    re-query:
