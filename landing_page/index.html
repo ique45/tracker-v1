@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acesso Exclusivo</title>
+  <meta name="description" content="Garanta sua vaga agora. Vagas extremamente limitadas.">
+
+  <meta property="og:title" content="Acesso Exclusivo">
+  <meta property="og:description" content="Garanta sua vaga agora. Vagas extremamente limitadas.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Meta Pixel -->
+  <script>
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+    n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+    document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '1521401406214526');
+
+    (function () {
+      var pvEventId = (crypto.randomUUID && crypto.randomUUID()) ||
+        (Date.now() + '-' + Math.random().toString(36).slice(2));
+      fbq('track', 'PageView', {}, { eventID: pvEventId });
+      fetch('/tracker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        body: JSON.stringify({
+          event_name: 'PageView',
+          event_id: pvEventId,
+          event_time: Math.floor(Date.now() / 1000),
+          event_source_url: window.location.href,
+          user_data: {},
+        }),
+      }).catch(function () {});
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+      --gold:       #C9A84C;
+      --gold-light: #E8CC7A;
+      --gold-pale:  #F5E9C8;
+      --gold-dark:  #8B6914;
+      --obsidian:   #0A0A0A;
+      --obsidian-2: #111111;
+      --obsidian-3: #1A1A1A;
+      --smoke:      #2A2A2A;
+      --muted:      #666666;
+      --cream:      #F8F4EC;
+      --white:      #FFFFFF;
+
+      --serif: 'Cormorant Garamond', Georgia, serif;
+      --sans:  'Inter', -apple-system, sans-serif;
+
+      --radius: 2px;
+      --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html, body { height: 100%; margin: 0; }
+
+    body {
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--cream);
+      background-color: var(--obsidian);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    /* Noise texture */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Gold ambient glow */
+    body::after {
+      content: "";
+      position: fixed;
+      top: -40%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80vw;
+      height: 80vw;
+      max-width: 800px;
+      max-height: 800px;
+      background: radial-gradient(
+        ellipse at center,
+        rgba(201, 168, 76, 0.07) 0%,
+        rgba(201, 168, 76, 0.03) 40%,
+        transparent 70%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Layout */
+    main {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 5rem 1.5rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    /* Logo mark */
+    .logomark {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 3rem;
+    }
+    .logomark-line {
+      width: 32px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold));
+    }
+    .logomark-line.right {
+      background: linear-gradient(90deg, var(--gold), transparent);
+    }
+    .logomark-diamond {
+      width: 8px;
+      height: 8px;
+      background: var(--gold);
+      transform: rotate(45deg);
+      box-shadow: 0 0 12px rgba(201, 168, 76, 0.5);
+    }
+
+    /* Eyebrow */
+    .eyebrow {
+      font-family: var(--sans);
+      font-size: 0.6875rem;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1.25rem;
+    }
+
+    /* Headline */
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(2.5rem, 6vw, 3.75rem);
+      font-weight: 300;
+      line-height: 1.08;
+      letter-spacing: -0.01em;
+      color: var(--white);
+      margin: 0 0 0.5rem;
+    }
+    h1 em {
+      font-style: italic;
+      background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-dark) 100%);
+      -webkit-background-clip: text;
+              background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+
+    /* Ornament divider */
+    .ornament {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 1.75rem 0;
+      width: 100%;
+      max-width: 320px;
+    }
+    .ornament-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(201, 168, 76, 0.3), transparent);
+    }
+    .ornament-glyph {
+      font-family: var(--serif);
+      font-size: 1rem;
+      color: var(--gold);
+      opacity: 0.7;
+      line-height: 1;
+    }
+
+    /* Subheadline */
+    .sub {
+      font-family: var(--sans);
+      font-size: 1rem;
+      font-weight: 300;
+      line-height: 1.7;
+      color: rgba(248, 244, 236, 0.6);
+      margin: 0 0 2.5rem;
+      max-width: 400px;
+    }
+
+    /* Form */
+    form.signup {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.625rem;
+    }
+
+    .input-wrap input {
+      width: 100%;
+      appearance: none;
+      border: 1px solid rgba(201, 168, 76, 0.18);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 0.9375rem 1.125rem;
+      font-family: var(--sans);
+      font-size: 0.9375rem;
+      font-weight: 300;
+      color: var(--cream);
+      outline: none;
+      transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+    }
+    .input-wrap input::placeholder { color: rgba(248, 244, 236, 0.22); }
+    .input-wrap input:focus {
+      border-color: rgba(201, 168, 76, 0.45);
+      background: rgba(201, 168, 76, 0.04);
+      box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.08);
+    }
+
+    /* CTA button */
+    .btn-cta {
+      position: relative;
+      appearance: none;
+      border: none;
+      cursor: pointer;
+      font-family: var(--sans);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--obsidian);
+      padding: 1.0625rem 2rem;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 55%, var(--gold-dark) 100%);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.14) inset,
+        0 4px 20px rgba(201, 168, 76, 0.22);
+      transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
+      width: 100%;
+      margin-top: 0.375rem;
+      overflow: hidden;
+    }
+    .btn-cta::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .btn-cta:hover {
+      filter: brightness(1.07);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.14) inset,
+        0 8px 32px rgba(201, 168, 76, 0.32);
+      transform: translateY(-1px);
+    }
+    .btn-cta:active  { transform: translateY(0); }
+    .btn-cta:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-cta:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.4);
+    }
+
+    /* Fine print */
+    .fine {
+      font-size: 0.75rem;
+      font-weight: 300;
+      letter-spacing: 0.03em;
+      color: rgba(248, 244, 236, 0.25);
+      margin-top: 0.5rem;
+    }
+
+    .error {
+      display: none;
+      font-size: 0.8125rem;
+      color: #e87979;
+    }
+    .error.is-on { display: block; }
+
+    /* Success state */
+    .success {
+      display: none;
+      width: 100%;
+      padding: 2rem 1.5rem;
+      border: 1px solid rgba(201, 168, 76, 0.22);
+      border-radius: var(--radius);
+      background: rgba(201, 168, 76, 0.05);
+      text-align: center;
+    }
+    .success.is-on { display: block; }
+    .success-glyph {
+      font-size: 1.25rem;
+      color: var(--gold);
+      margin-bottom: 0.75rem;
+    }
+    .success strong {
+      display: block;
+      font-family: var(--serif);
+      font-size: 1.5rem;
+      font-weight: 400;
+      color: var(--gold-light);
+      margin-bottom: 0.375rem;
+    }
+    .success span {
+      font-size: 0.875rem;
+      font-weight: 300;
+      color: rgba(248, 244, 236, 0.5);
+    }
+
+    /* Trust bar */
+    .trust {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.25rem;
+      margin-top: 2.5rem;
+      flex-wrap: wrap;
+    }
+    .trust-item {
+      font-size: 0.6875rem;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(248, 244, 236, 0.25);
+    }
+    .trust-sep {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--gold);
+      opacity: 0.3;
+    }
+
+    /* Footer ornament */
+    .footer-ornament {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 3.5rem;
+      opacity: 0.18;
+    }
+    .footer-ornament-line {
+      width: 20px;
+      height: 1px;
+      background: var(--gold);
+    }
+    .footer-ornament-glyph {
+      font-size: 0.5625rem;
+      color: var(--gold);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 480px) {
+      main { padding: 3.5rem 1.25rem; }
+      h1   { font-size: 2.25rem; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="container">
+
+      <div class="logomark" aria-hidden="true">
+        <span class="logomark-line"></span>
+        <span class="logomark-diamond"></span>
+        <span class="logomark-line right"></span>
+      </div>
+
+      <p class="eyebrow">Acesso Exclusivo</p>
+
+      <h1>Sua vaga está<br><em>reservada.</em></h1>
+
+      <div class="ornament" aria-hidden="true">
+        <span class="ornament-line"></span>
+        <span class="ornament-glyph">✦</span>
+        <span class="ornament-line"></span>
+      </div>
+
+      <p class="sub">
+        Uma oportunidade pensada para quem leva resultados a sério.
+        Preencha abaixo e receba as informações com prioridade.
+      </p>
+
+      <form class="signup" id="signup" novalidate>
+        <div class="input-wrap">
+          <input
+            id="name" name="name" type="text"
+            autocomplete="name" required
+            placeholder="Seu nome completo"
+            aria-label="Seu nome completo">
+        </div>
+        <div class="input-wrap">
+          <input
+            id="email" name="email" type="email"
+            inputmode="email" autocomplete="email" required
+            placeholder="Seu melhor e-mail"
+            aria-label="Seu e-mail">
+        </div>
+        <div class="input-wrap">
+          <input
+            id="phone" name="phone" type="tel"
+            inputmode="numeric" autocomplete="tel"
+            placeholder="WhatsApp (com DDD)"
+            aria-label="Seu WhatsApp">
+        </div>
+
+        <button class="btn-cta" type="submit" id="submit-btn">
+          Garantir minha vaga
+        </button>
+
+        <p class="fine">Seus dados estão protegidos. Sem spam.</p>
+        <p class="error" id="form-error" role="alert"></p>
+      </form>
+
+      <div class="success" id="success" role="status" aria-live="polite">
+        <div class="success-glyph" aria-hidden="true">✦</div>
+        <strong>Vaga garantida.</strong>
+        <span>Em breve você receberá todas as informações.</span>
+      </div>
+
+      <div class="trust" aria-label="Garantias">
+        <span class="trust-item">Acesso privado</span>
+        <span class="trust-sep" aria-hidden="true"></span>
+        <span class="trust-item">100% seguro</span>
+        <span class="trust-sep" aria-hidden="true"></span>
+        <span class="trust-item">Sem spam</span>
+      </div>
+
+      <div class="footer-ornament" aria-hidden="true">
+        <span class="footer-ornament-line"></span>
+        <span class="footer-ornament-glyph">✦</span>
+        <span class="footer-ornament-line"></span>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+  (function () {
+    const form      = document.getElementById('signup');
+    const success   = document.getElementById('success');
+    const errorEl   = document.getElementById('form-error');
+    const submitBtn = document.getElementById('submit-btn');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorEl.classList.remove('is-on');
+      errorEl.textContent = '';
+
+      const nameInput  = form.elements.name;
+      const emailInput = form.elements.email;
+      const phoneInput = form.elements.phone;
+
+      if (!emailInput.value || !emailInput.checkValidity()) {
+        emailInput.focus();
+        return;
+      }
+
+      const fullName  = nameInput.value.trim();
+      const email     = emailInput.value.trim();
+      const phone     = phoneInput.value.trim().replace(/\D/g, '');
+      const parts     = fullName.split(/\s+/);
+      const firstName = parts[0] || '';
+      const lastName  = parts.slice(1).join(' ') || '';
+
+      submitBtn.disabled = true;
+      const originalHTML = submitBtn.innerHTML;
+      submitBtn.textContent = 'Aguarde…';
+
+      const eventId   = crypto.randomUUID();
+      const eventTime = Math.floor(Date.now() / 1000);
+
+      // Browser-side pixel fire (deduped by event_id against CAPI)
+      try {
+        if (window.fbq) fbq('track', 'Lead', {}, { eventID: eventId });
+      } catch (_) {}
+
+      // Server-side CAPI fire via /tracker
+      try {
+        const userData = { em: email };
+        if (firstName) userData.fn = firstName;
+        if (lastName)  userData.ln = lastName;
+        if (phone)     userData.ph = phone;
+
+        const res = await fetch('/tracker', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event_name: 'Lead',
+            event_id:   eventId,
+            event_time: eventTime,
+            event_source_url: window.location.href,
+            user_data: userData,
+          }),
+        });
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error || `server ${res.status}`);
+        }
+
+        form.style.display = 'none';
+        success.classList.add('is-on');
+      } catch (err) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalHTML;
+        errorEl.textContent = 'Algo deu errado. Tente novamente.';
+        errorEl.classList.add('is-on');
+        console.error('Lead submit failed:', err);
+      }
+    });
+  })();
+  </script>
+</body>
+</html>
