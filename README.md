@@ -1,93 +1,56 @@
-# Tracking Stack
+# Tracker V1
 
-Self-hosted server-side tracking for Meta Ads, GA4, and Google Ads. Replaces
-Stape and GTM Server-Side for paid-traffic creators running lead-capture forms
-and sales pages.
+Esse é o meu sistema de rastreamento de leads e conversões, hospedado no meu próprio Cloudflare. Criei ele porque queria parar de depender de ferramentas de terceiros caras e ter controle total sobre os dados de quem entra nas minhas páginas.
 
-**Version**: see `VERSION`
+## O que ele faz
 
-## What you get
+Quando alguém acessa uma página minha, o sistema:
 
-- **First-party cookies** that survive Safari ITP (400-day server-set from the edge).
-- **Server-side conversion events** to Meta CAPI, GA4 Measurement Protocol,
-  and Google Ads API — no loss from ad-blockers, no dependence on the pixel.
-- **Full attribution persistence** (UTMs, `fbp`/`fbc`, `gclid`) captured at
-  the edge and threaded through to each lead and each purchase.
-- **Sales platform webhooks** for Eduzz, Hotmart, and Kiwify out of the box.
-- **A built-in dashboard** showing leads and purchases with their original
-  UTMs so you can see where conversions actually came from.
-- **Runs entirely in your own Cloudflare account.** No external services, no
-  SaaS subscriptions, no shared backend.
+1. **Captura a origem do visitante** — de onde ele veio, qual campanha, qual anúncio (UTMs, fbclid, gclid)
+2. **Gera cookies próprios** que duram 400 dias e sobrevivem ao bloqueio do Safari — então não perco o rastro do lead mesmo em iPhone
+3. **Dispara o evento para o Meta de forma server-side** — pelo servidor, não só pelo pixel do navegador. Isso significa que mesmo quem usa bloqueador de anúncio é contabilizado
+4. **Salva o lead no banco** com nome, e-mail e WhatsApp para eu consultar no dashboard
 
-## Who this is for
+O resultado: a Meta recebe os eventos com muito mais qualidade, o que melhora a otimização das campanhas.
 
-Creators running paid traffic to lead-capture or sales pages. You have (or can
-get) your own Meta Ads account, GA4 property, and optionally Google Ads. You
-want the tracking quality of Stape or a GTM Server container without the
-monthly cost or the DevOps.
+## Por que fiz assim
 
-This is **not** for you if:
+O problema com o pixel padrão do Meta é que ele roda no navegador do visitante. Se a pessoa usa iPhone (Safari ITP), bloqueador de anúncio ou extensão de privacidade, o evento se perde. Isso distorce os dados e prejudica o algoritmo de otimização.
 
-- You don't run your own ad accounts.
-- You need a hosted SaaS product — this runs in *your* Cloudflare account, not
-  ours.
-- Your sales platform isn't Eduzz, Hotmart, or Kiwify and you're not willing
-  to let Claude Code help you add a new one (it's a guided 15-minute procedure
-  — see `docs/platforms/_template.md`).
+A solução profissional para isso normalmente envolve ferramentas como Stape ou GTM Server-Side, que custam mensalidade e dependem de infraestrutura de terceiros. Aqui eu montei a mesma solução rodando na minha própria conta do Cloudflare, sem custo adicional e sem nenhum dado passando por servidor de terceiros.
 
-## What you need before you start
+## Estrutura
 
-- **A Cloudflare account.** The free tier is enough to start. You'll create a
-  Pages project and a D1 database inside it.
-- **A GitHub account**, with the `gh` CLI installed and authenticated
-  (`gh auth login`). Cloudflare Pages deploys your stack by auto-pulling from
-  GitHub every time you push.
-- **Node.js** so `npx wrangler@latest` works (no global install needed).
-- **Claude Code installed.** This entire stack is designed to be deployed and
-  managed through Claude Code — you will not need to write any code yourself.
-- **Meta Business Manager**: a Pixel ID and a Conversions API access token.
-- **GA4 (optional)**: a Measurement ID (`G-XXXXXXXXXX`) and a Measurement
-  Protocol API secret. Skip if you don't plan to use GA4.
-- **Google Ads (optional)**: developer token, OAuth credentials, and at least
-  one conversion action ID. Skip this if you don't run Google Ads.
-- **A sales platform account** if you're building a sales page (Eduzz,
-  Hotmart, or Kiwify). Each needs a way to generate a webhook secret in its
-  own dashboard.
+- **Landing page** em `/landing_page` — formulário de captura com design gold/luxo
+- **Dashboard** em `/dash` — visualizo todos os leads com nome, e-mail e telefone
+- **Rastreamento server-side** — eventos enviados diretamente ao Meta CAPI com deduplicação (o pixel do navegador e o servidor disparam o mesmo evento_id, o Meta conta só uma vez)
+- **Banco de dados D1** no Cloudflare — todos os leads ficam no meu próprio banco, sem terceiros
 
-## How to set up
+## Como funciona por baixo
 
-1. Unpack this folder somewhere on your computer.
-2. Open that folder in **Claude Code**.
-3. Say: **"set up my tracking"**. Claude Code invokes the `deploy-stack`
-   skill, which creates your D1 database via `wrangler`, spins up a fresh
-   private GitHub repo and pushes the code, then walks you step by step
-   through the Cloudflare dashboard — creating the Pages project, binding
-   the D1, and adding your environment variables. Expect about 30 minutes
-   end-to-end.
-4. When it finishes, say: **"check my tracking is working"**. Claude Code will
-   invoke the `verify-tracking` skill and walk you through the 6-step
-   integrity verification so you know every link in the chain is wired up
-   before you point real traffic at it.
-5. To add your first lead form or sales page, say: **"add a lead page"** or
-   **"add a sales page"**. Claude Code will copy the right starter template
-   and wire it to the tracking endpoints.
+Quando alguém acessa a landing page:
 
-## What's inside
+1. O middleware roda na borda (edge) do Cloudflare e gera/atualiza os cookies de rastreamento
+2. O pixel do Meta dispara no navegador (PageView)
+3. Simultaneamente, o servidor dispara o mesmo evento para a Meta CAPI — deduplicado
+4. Quando o formulário é enviado, o servidor recebe nome, e-mail e telefone, hasheia os dados e os envia ao Meta para Advanced Matching, e salva o lead no banco
 
-| Directory | Purpose |
-|---|---|
-| `functions/` | Cloudflare Pages Functions — middleware, endpoints, webhook handlers |
-| `migrations/` | D1 database schema (applied during setup) |
-| `dash/` | The built-in dashboard (self-contained HTML) |
-| `examples/` | Starter HTML pages for lead forms and sales pages |
-| `docs/` | Reference documentation you can read if you're curious |
-| `.claude/skills/` | Claude Code skills that automate setup, verification, and extension |
-| `config/` | Per-product configuration (you edit one JSON file) |
+## Dashboard
 
-## Support
+Acesso em `/dash?key=MINHA_CHAVE`. Mostra:
 
-<!-- TODO: fill in support channel (Slack? forum? email?) before launch -->
+- Total de leads no período
+- Quantos têm e-mail e quantos têm WhatsApp
+- Tabela com nome, e-mail, telefone, origem e status do envio ao Meta
+- Clico em qualquer lead para ver exatamente o que foi enviado ao Meta e a resposta
 
-## License
+## Stack
 
-<!-- TODO: decide license before launch -->
+- **Cloudflare Pages** — hospedagem e edge functions
+- **Cloudflare D1** — banco de dados SQLite no edge
+- **Meta Conversions API** — eventos server-side
+- **GitHub** — controle de versão e deploy automático (push = deploy)
+
+## Deploy
+
+O deploy é automático: qualquer push para a branch `main` no GitHub atualiza o site automaticamente via Cloudflare Pages.
