@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mais um passo</title>
+  <meta name="description" content="Só mais algumas perguntas rápidas.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+      --gold:       #C9A84C;
+      --gold-light: #E8CC7A;
+      --gold-dark:  #8B6914;
+      --obsidian:   #0A0A0A;
+      --cream:      #F8F4EC;
+      --white:      #FFFFFF;
+      --serif: 'Cormorant Garamond', Georgia, serif;
+      --sans:  'Inter', -apple-system, sans-serif;
+      --radius: 2px;
+      --t: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html, body { height: 100%; margin: 0; }
+
+    body {
+      font-family: var(--sans);
+      color: var(--cream);
+      background: var(--obsidian);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      top: -40%; left: 50%;
+      transform: translateX(-50%);
+      width: 70vw; height: 70vw;
+      max-width: 700px; max-height: 700px;
+      background: radial-gradient(ellipse at center,
+        rgba(201,168,76,0.07) 0%,
+        rgba(201,168,76,0.03) 40%,
+        transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+
+    main {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: grid; place-items: center;
+      padding: 4rem 1.5rem;
+    }
+
+    .container {
+      width: 100%; max-width: 540px;
+      display: flex; flex-direction: column; align-items: center;
+      text-align: center;
+    }
+
+    /* Logomark */
+    .logomark { display: flex; align-items: center; gap: 10px; margin-bottom: 2.5rem; }
+    .lm-line { width: 28px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold)); }
+    .lm-line.r { background: linear-gradient(90deg, var(--gold), transparent); }
+    .lm-dot { width: 7px; height: 7px; background: var(--gold); transform: rotate(45deg); box-shadow: 0 0 10px rgba(201,168,76,.5); }
+
+    .eyebrow {
+      font-size: .6875rem; font-weight: 500; letter-spacing: .2em;
+      text-transform: uppercase; color: var(--gold); margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 300; line-height: 1.1;
+      color: var(--white); margin: 0 0 .5rem;
+    }
+    h1 em {
+      font-style: italic;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-dark));
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .ornament { display: flex; align-items: center; gap: 12px; margin: 1.5rem 0; width: 100%; max-width: 280px; }
+    .orn-line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(201,168,76,.28), transparent); }
+    .orn-glyph { font-family: var(--serif); font-size: .875rem; color: var(--gold); opacity: .65; }
+
+    .sub {
+      font-size: .9375rem; font-weight: 300; line-height: 1.65;
+      color: rgba(248,244,236,.55); margin: 0 0 2.5rem; max-width: 400px;
+    }
+
+    /* Progress bar */
+    .progress { width: 100%; margin-bottom: 2rem; }
+    .progress-track {
+      width: 100%; height: 2px;
+      background: rgba(201,168,76,.15);
+      border-radius: 999px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold-dark), var(--gold-light));
+      border-radius: 999px;
+      transition: width .45s ease;
+    }
+    .progress-label {
+      font-size: .6875rem; font-weight: 400; letter-spacing: .1em;
+      text-transform: uppercase; color: rgba(248,244,236,.3);
+      margin-top: .5rem; text-align: right;
+    }
+
+    /* Steps */
+    .step { display: none; width: 100%; text-align: left; }
+    .step.active { display: block; animation: fadeUp .3s ease-out; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    .step-question {
+      font-family: var(--serif);
+      font-size: clamp(1.25rem, 3vw, 1.625rem);
+      font-weight: 400; line-height: 1.25;
+      color: var(--white); margin-bottom: 1.25rem;
+    }
+
+    /* Options */
+    .options { display: flex; flex-direction: column; gap: .5rem; }
+
+    .option {
+      display: flex; align-items: center; gap: .875rem;
+      padding: .875rem 1.125rem;
+      border: 1px solid rgba(201,168,76,.18);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.02);
+      cursor: pointer;
+      transition: border-color var(--t), background var(--t), box-shadow var(--t);
+      user-select: none;
+    }
+    .option:hover {
+      border-color: rgba(201,168,76,.4);
+      background: rgba(201,168,76,.05);
+    }
+    .option.selected {
+      border-color: var(--gold);
+      background: rgba(201,168,76,.08);
+      box-shadow: 0 0 0 3px rgba(201,168,76,.1);
+    }
+    .option input[type="radio"] { display: none; }
+    .option-dot {
+      width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+      border: 1px solid rgba(201,168,76,.35);
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color var(--t), background var(--t);
+    }
+    .option.selected .option-dot {
+      border-color: var(--gold);
+      background: var(--gold);
+    }
+    .option.selected .option-dot::after {
+      content: "";
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--obsidian);
+    }
+    .option-label { font-size: .9375rem; font-weight: 300; color: var(--cream); }
+
+    /* Nav buttons */
+    .nav { display: flex; gap: .625rem; margin-top: 1.5rem; }
+
+    .btn-back {
+      flex: 0 0 auto;
+      appearance: none; border: 1px solid rgba(201,168,76,.2);
+      cursor: pointer; background: transparent;
+      font-family: var(--sans); font-size: .8125rem; font-weight: 400;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: rgba(248,244,236,.4);
+      padding: .9375rem 1.25rem; border-radius: var(--radius);
+      transition: border-color var(--t), color var(--t);
+    }
+    .btn-back:hover { border-color: rgba(201,168,76,.4); color: rgba(248,244,236,.7); }
+
+    .btn-next {
+      flex: 1;
+      position: relative; appearance: none; border: none; cursor: pointer;
+      font-family: var(--sans); font-size: .8125rem; font-weight: 500;
+      letter-spacing: .15em; text-transform: uppercase;
+      color: var(--obsidian);
+      padding: .9375rem 1.5rem; border-radius: var(--radius);
+      background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-dark));
+      box-shadow: 0 1px 0 rgba(255,255,255,.14) inset, 0 4px 18px rgba(201,168,76,.2);
+      transition: transform var(--t), filter var(--t), box-shadow var(--t);
+      overflow: hidden;
+    }
+    .btn-next::before {
+      content:""; position:absolute; inset:0;
+      background:linear-gradient(180deg,rgba(255,255,255,.12) 0%,transparent 60%);
+      pointer-events:none;
+    }
+    .btn-next:hover { filter:brightness(1.07); transform:translateY(-1px); box-shadow:0 1px 0 rgba(255,255,255,.14) inset,0 8px 28px rgba(201,168,76,.3); }
+    .btn-next:active { transform:translateY(0); }
+    .btn-next:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+
+    /* Success */
+    .success { display:none; text-align:center; }
+    .success.show { display:block; animation:fadeUp .4s ease-out; }
+    .success-glyph { font-size:1.5rem; color:var(--gold); margin-bottom:.875rem; }
+    .success h2 {
+      font-family:var(--serif); font-size:clamp(1.75rem,4vw,2.5rem);
+      font-weight:300; color:var(--white); margin:0 0 .5rem;
+    }
+    .success h2 em {
+      font-style:italic;
+      background:linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark));
+      -webkit-background-clip:text; background-clip:text;
+      -webkit-text-fill-color:transparent;
+    }
+    .success p { font-size:.9375rem; font-weight:300; color:rgba(248,244,236,.5); margin:.5rem 0 0; }
+
+    .footer-ornament { display:flex; align-items:center; gap:8px; margin-top:3rem; opacity:.15; }
+    .fo-line { width:18px; height:1px; background:var(--gold); }
+    .fo-glyph { font-size:.5rem; color:var(--gold); letter-spacing:.15em; text-transform:uppercase; }
+
+    @media (max-width:480px) { main { padding:3rem 1.25rem; } }
+  </style>
+</head>
+<body>
+<main>
+  <div class="container">
+
+    <div class="logomark" aria-hidden="true">
+      <span class="lm-line"></span>
+      <span class="lm-dot"></span>
+      <span class="lm-line r"></span>
+    </div>
+
+    <p class="eyebrow">Quase lá</p>
+    <h1>Só mais <em>algumas perguntas.</em></h1>
+
+    <div class="ornament" aria-hidden="true">
+      <span class="orn-line"></span><span class="orn-glyph">✦</span><span class="orn-line"></span>
+    </div>
+
+    <p class="sub">Suas respostas nos ajudam a entender seu momento e personalizar o contato.</p>
+
+    <div class="progress" id="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:25%"></div></div>
+      <div class="progress-label" id="progress-label">Pergunta 1 de 4</div>
+    </div>
+
+    <!-- Formulário de qualificação -->
+    <form id="qual-form" style="width:100%">
+
+      <!-- Passo 1: Idade -->
+      <div class="step active" data-step="1">
+        <div class="step-question">Qual é a sua faixa de idade?</div>
+        <div class="options" id="opts-idade">
+          <label class="option"><input type="radio" name="idade" value="18-24"><span class="option-dot"></span><span class="option-label">18 – 24 anos</span></label>
+          <label class="option"><input type="radio" name="idade" value="25-34"><span class="option-dot"></span><span class="option-label">25 – 34 anos</span></label>
+          <label class="option"><input type="radio" name="idade" value="35-44"><span class="option-dot"></span><span class="option-label">35 – 44 anos</span></label>
+          <label class="option"><input type="radio" name="idade" value="45-54"><span class="option-dot"></span><span class="option-label">45 – 54 anos</span></label>
+          <label class="option"><input type="radio" name="idade" value="55+"><span class="option-dot"></span><span class="option-label">55 anos ou mais</span></label>
+        </div>
+        <div class="nav">
+          <button type="button" class="btn-next" id="btn-1" disabled>Próximo</button>
+        </div>
+      </div>
+
+      <!-- Passo 2: Faturamento -->
+      <div class="step" data-step="2">
+        <div class="step-question">Qual é o seu faturamento mensal médio?</div>
+        <div class="options" id="opts-fat">
+          <label class="option"><input type="radio" name="faturamento" value="Abaixo de R$5k"><span class="option-dot"></span><span class="option-label">Abaixo de R$ 5.000</span></label>
+          <label class="option"><input type="radio" name="faturamento" value="R$5k–R$20k"><span class="option-dot"></span><span class="option-label">R$ 5.000 – R$ 20.000</span></label>
+          <label class="option"><input type="radio" name="faturamento" value="R$20k–R$50k"><span class="option-dot"></span><span class="option-label">R$ 20.000 – R$ 50.000</span></label>
+          <label class="option"><input type="radio" name="faturamento" value="R$50k–R$100k"><span class="option-dot"></span><span class="option-label">R$ 50.000 – R$ 100.000</span></label>
+          <label class="option"><input type="radio" name="faturamento" value="Acima de R$100k"><span class="option-dot"></span><span class="option-label">Acima de R$ 100.000</span></label>
+        </div>
+        <div class="nav">
+          <button type="button" class="btn-back" data-to="1">Voltar</button>
+          <button type="button" class="btn-next" id="btn-2" disabled>Próximo</button>
+        </div>
+      </div>
+
+      <!-- Passo 3: Tráfego pago -->
+      <div class="step" data-step="3">
+        <div class="step-question">Você já investe em tráfego pago?</div>
+        <div class="options" id="opts-traf">
+          <label class="option"><input type="radio" name="trafego" value="Sim, regularmente"><span class="option-dot"></span><span class="option-label">Sim, invisto regularmente</span></label>
+          <label class="option"><input type="radio" name="trafego" value="Sim, já tentei"><span class="option-dot"></span><span class="option-label">Já tentei, mas parei</span></label>
+          <label class="option"><input type="radio" name="trafego" value="Não, nunca"><span class="option-dot"></span><span class="option-label">Nunca investi</span></label>
+        </div>
+        <div class="nav">
+          <button type="button" class="btn-back" data-to="2">Voltar</button>
+          <button type="button" class="btn-next" id="btn-3" disabled>Próximo</button>
+        </div>
+      </div>
+
+      <!-- Passo 4: Desafio -->
+      <div class="step" data-step="4">
+        <div class="step-question">Qual é o seu maior desafio hoje?</div>
+        <div class="options" id="opts-des">
+          <label class="option"><input type="radio" name="desafio" value="Gerar leads qualificados"><span class="option-dot"></span><span class="option-label">Gerar leads qualificados</span></label>
+          <label class="option"><input type="radio" name="desafio" value="Converter leads em clientes"><span class="option-dot"></span><span class="option-label">Converter leads em clientes</span></label>
+          <label class="option"><input type="radio" name="desafio" value="Escalar o faturamento"><span class="option-dot"></span><span class="option-label">Escalar o faturamento</span></label>
+          <label class="option"><input type="radio" name="desafio" value="Reduzir custo por aquisição"><span class="option-dot"></span><span class="option-label">Reduzir o custo por aquisição</span></label>
+          <label class="option"><input type="radio" name="desafio" value="Outro"><span class="option-dot"></span><span class="option-label">Outro</span></label>
+        </div>
+        <div class="nav">
+          <button type="button" class="btn-back" data-to="3">Voltar</button>
+          <button type="button" class="btn-next" id="btn-4" disabled>Concluir</button>
+        </div>
+      </div>
+
+    </form>
+
+    <!-- Sucesso -->
+    <div class="success" id="success">
+      <div class="success-glyph">✦</div>
+      <h2>Tudo <em>certo.</em></h2>
+      <p>Recebemos suas respostas. Entraremos em contato em breve.</p>
+    </div>
+
+    <div class="footer-ornament" aria-hidden="true">
+      <span class="fo-line"></span><span class="fo-glyph">✦</span><span class="fo-line"></span>
+    </div>
+
+  </div>
+</main>
+
+<script>
+(function () {
+  const TOTAL = 4;
+  let currentStep = 1;
+
+  const progressFill  = document.getElementById('progress-fill');
+  const progressLabel = document.getElementById('progress-label');
+  const form          = document.getElementById('qual-form');
+  const successEl     = document.getElementById('success');
+  const progressWrap  = document.getElementById('progress-wrap');
+
+  // Map step → field name
+  const FIELD = { 1: 'idade', 2: 'faturamento', 3: 'trafego', 4: 'desafio' };
+
+  function getStep(n) { return document.querySelector(`.step[data-step="${n}"]`); }
+  function getCookieVal(name) {
+    const m = document.cookie.match('(?:^|;)\\s*' + name + '=([^;]*)');
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  function updateProgress(step) {
+    const pct = Math.round((step / TOTAL) * 100);
+    progressFill.style.width = pct + '%';
+    progressLabel.textContent = `Pergunta ${step} de ${TOTAL}`;
+  }
+
+  function showStep(n) {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    getStep(n).classList.add('active');
+    currentStep = n;
+    updateProgress(n);
+  }
+
+  // Mark options as selected on click + enable next button
+  document.querySelectorAll('.options').forEach(group => {
+    const stepEl   = group.closest('.step');
+    const stepNum  = parseInt(stepEl.getAttribute('data-step'), 10);
+    const nextBtn  = document.getElementById(`btn-${stepNum}`);
+
+    group.querySelectorAll('.option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        group.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        opt.querySelector('input').checked = true;
+        nextBtn.disabled = false;
+      });
+    });
+  });
+
+  // Back buttons
+  document.querySelectorAll('.btn-back').forEach(btn => {
+    btn.addEventListener('click', () => showStep(parseInt(btn.getAttribute('data-to'), 10)));
+  });
+
+  // Next / submit buttons
+  [1, 2, 3].forEach(n => {
+    document.getElementById(`btn-${n}`).addEventListener('click', () => showStep(n + 1));
+  });
+
+  document.getElementById('btn-4').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-4');
+    btn.disabled = true;
+    btn.textContent = 'Enviando…';
+
+    const data = {};
+    for (let s = 1; s <= TOTAL; s++) {
+      const checked = form.querySelector(`input[name="${FIELD[s]}"]:checked`);
+      if (checked) data[FIELD[s]] = checked.value;
+    }
+
+    // Pass session_id as fallback in body (server reads cookie first)
+    data.session_id = getCookieVal('_krob_sid');
+
+    try {
+      await fetch('/qualificacao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+    } catch (_) {}
+
+    // Show success regardless of network result
+    form.style.display = 'none';
+    progressWrap.style.display = 'none';
+    successEl.classList.add('show');
+  });
+
+  // Init
+  updateProgress(1);
+})();
+</script>
+</body>
+</html>

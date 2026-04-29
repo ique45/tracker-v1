@@ -87,12 +87,16 @@
               <th class="text-left py-2 pr-4 font-semibold">Nome</th>
               <th class="text-left py-2 pr-4 font-semibold">E-mail</th>
               <th class="text-left py-2 pr-4 font-semibold">WhatsApp</th>
+              <th class="text-left py-2 pr-4 font-semibold">Idade</th>
+              <th class="text-left py-2 pr-4 font-semibold">Faturamento</th>
+              <th class="text-left py-2 pr-4 font-semibold">Tráfego</th>
+              <th class="text-left py-2 pr-4 font-semibold">Desafio</th>
               <th class="text-left py-2 pr-4 font-semibold">Origem</th>
               <th class="text-center py-2 font-semibold">Meta</th>
             </tr>
           </thead>
           <tbody id="leads-tbody">
-            <tr><td colspan="6" class="py-8 text-center text-[color:var(--muted)]">Carregando…</td></tr>
+            <tr><td colspan="10" class="py-8 text-center text-[color:var(--muted)]">Carregando…</td></tr>
           </tbody>
         </table>
       </div>
@@ -204,16 +208,20 @@
       qs('#table-count').textContent = total > 0 ? `${total} resultado${total !== 1 ? 's' : ''}` : '';
 
       if (total === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-[color:var(--muted)]">Nenhum lead neste período.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="py-8 text-center text-[color:var(--muted)]">Nenhum lead neste período.</td></tr>';
         return;
       }
 
       tbody.innerHTML = leadsData.map((l, i) => `
         <tr class="row-hover border-b border-[color:var(--border)]" data-idx="${i}">
           <td class="py-2.5 pr-4 text-[color:var(--dim)] text-xs mono whitespace-nowrap">${fmtDate(l.timestamp)}</td>
-          <td class="py-2.5 pr-4">${escapeHtml(l.raw_name || '—')}</td>
+          <td class="py-2.5 pr-4 whitespace-nowrap">${escapeHtml(l.raw_name || '—')}</td>
           <td class="py-2.5 pr-4 mono text-xs">${escapeHtml(l.raw_email || '—')}</td>
           <td class="py-2.5 pr-4 mono text-xs">${escapeHtml(l.raw_phone || '—')}</td>
+          <td class="py-2.5 pr-4 text-xs text-[color:var(--dim)]">${escapeHtml(l.idade || '—')}</td>
+          <td class="py-2.5 pr-4 text-xs text-[color:var(--dim)] whitespace-nowrap">${escapeHtml(l.faturamento || '—')}</td>
+          <td class="py-2.5 pr-4 text-xs text-[color:var(--dim)] whitespace-nowrap">${escapeHtml(l.trafego || '—')}</td>
+          <td class="py-2.5 pr-4 text-xs text-[color:var(--dim)]">${escapeHtml(l.desafio || '—')}</td>
           <td class="py-2.5 pr-4 text-xs text-[color:var(--dim)]">${escapeHtml(l.utm_source || '(direto)')}</td>
           <td class="py-2.5 text-center text-sm">${l.meta_response_ok ? '<span style="color:var(--green)">✓</span>' : '<span style="color:var(--red)">✕</span>'}</td>
         </tr>
@@ -248,6 +256,16 @@
         <div><div class="text-xs text-[color:var(--muted)] mb-0.5">Campanha</div><div>${escapeHtml(lead.utm_campaign || '—')}</div></div>
         <div><div class="text-xs text-[color:var(--muted)] mb-0.5">Meio</div><div>${escapeHtml(lead.utm_medium || '—')}</div></div>
       </div>
+      ${(lead.idade || lead.faturamento || lead.trafego || lead.desafio) ? `
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-wider text-[color:var(--dim)] mb-3">Qualificação</div>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div><div class="text-xs text-[color:var(--muted)] mb-0.5">Idade</div><div>${escapeHtml(lead.idade || '—')}</div></div>
+          <div><div class="text-xs text-[color:var(--muted)] mb-0.5">Faturamento mensal</div><div>${escapeHtml(lead.faturamento || '—')}</div></div>
+          <div><div class="text-xs text-[color:var(--muted)] mb-0.5">Tráfego pago</div><div>${escapeHtml(lead.trafego || '—')}</div></div>
+          <div><div class="text-xs text-[color:var(--muted)] mb-0.5">Maior desafio</div><div>${escapeHtml(lead.desafio || '—')}</div></div>
+        </div>
+      </div>` : ''}
       <div>
         <div class="flex items-center justify-between mb-2">
           <div class="font-semibold text-sm">Meta CAPI</div>

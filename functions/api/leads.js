@@ -56,9 +56,14 @@ export async function onRequestGet(context) {
         s.fbclid,
         s.gclid,
         s.referrer,
-        s.landing_url
+        s.landing_url,
+        q.idade,
+        q.faturamento,
+        q.trafego,
+        q.desafio
       FROM event_log e
       LEFT JOIN sessions s ON e.session_id = s.session_id
+      LEFT JOIN lead_qualification q ON e.session_id = q.session_id
       WHERE e.event_name = 'Lead'
         AND e.timestamp >= ?
         ${botClause}

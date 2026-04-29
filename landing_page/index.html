@@ -528,8 +528,7 @@
           throw new Error(body.error || `server ${res.status}`);
         }
 
-        form.style.display = 'none';
-        success.classList.add('is-on');
+        window.location.href = '/qualificacao';
       } catch (err) {
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalHTML;
