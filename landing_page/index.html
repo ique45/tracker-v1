@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Acesso Exclusivo</title>
-  <meta name="description" content="Garanta sua vaga agora. Vagas extremamente limitadas.">
+  <title>Golden Med — Mais Margem, Menos Trabalho</title>
+  <meta name="description" content="Programa de Implementação Financeira e Comercial para clínicas e consultórios médicos que faturam acima de 75k/mês.">
 
-  <meta property="og:title" content="Acesso Exclusivo">
-  <meta property="og:description" content="Garanta sua vaga agora. Vagas extremamente limitadas.">
+  <meta property="og:title" content="Golden Med — Mais Margem, Menos Trabalho">
+  <meta property="og:description" content="Programa de Implementação Financeira e Comercial para clínicas e consultórios médicos que faturam acima de 75k/mês.">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
 
@@ -19,7 +19,6 @@
     t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
     document,'script','https://connect.facebook.net/en_US/fbevents.js');
     fbq('init', '1521401406214526');
-
     (function () {
       var pvEventId = (crypto.randomUUID && crypto.randomUUID()) ||
         (Date.now() + '-' + Math.random().toString(36).slice(2));
@@ -41,37 +40,42 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --gold:       #C9A84C;
-      --gold-light: #E8CC7A;
-      --gold-pale:  #F5E9C8;
-      --gold-dark:  #8B6914;
-      --obsidian:   #0A0A0A;
-      --obsidian-2: #111111;
-      --obsidian-3: #1A1A1A;
-      --smoke:      #2A2A2A;
-      --muted:      #666666;
-      --cream:      #F8F4EC;
-      --white:      #FFFFFF;
+      --gold:        #C9A84C;
+      --gold-light:  #E8CC7A;
+      --gold-pale:   #F5E9C8;
+      --gold-dark:   #8B6914;
+      --gold-dim:    rgba(201, 168, 76, 0.12);
+      --gold-border: rgba(201, 168, 76, 0.22);
+      --obsidian:    #070707;
+      --obsidian-2:  #0D0D0D;
+      --obsidian-3:  #141414;
+      --obsidian-4:  #1C1C1C;
+      --muted-text:  rgba(248, 244, 236, 0.52);
+      --dim-text:    rgba(248, 244, 236, 0.28);
+      --cream:       #F0EBE0;
+      --white:       #FFFFFF;
 
       --serif: 'Cormorant Garamond', Georgia, serif;
       --sans:  'Inter', -apple-system, sans-serif;
 
-      --radius: 2px;
+      --max-w:      700px;
+      --max-w-wide: 920px;
+      --radius:     3px;
       --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    html, body { height: 100%; margin: 0; }
+    html { scroll-behavior: smooth; }
 
     body {
       font-family: var(--sans);
       font-size: 16px;
-      line-height: 1.6;
+      line-height: 1.65;
       color: var(--cream);
       background-color: var(--obsidian);
       -webkit-font-smoothing: antialiased;
@@ -79,145 +83,941 @@
       overflow-x: hidden;
     }
 
-    /* Noise texture */
+    /* Noise overlay */
     body::before {
       content: "";
       position: fixed;
       inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.028'/%3E%3C/svg%3E");
       pointer-events: none;
       z-index: 0;
     }
 
-    /* Gold ambient glow */
-    body::after {
-      content: "";
-      position: fixed;
-      top: -40%;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 80vw;
-      height: 80vw;
-      max-width: 800px;
-      max-height: 800px;
-      background: radial-gradient(
-        ellipse at center,
-        rgba(201, 168, 76, 0.07) 0%,
-        rgba(201, 168, 76, 0.03) 40%,
-        transparent 70%
-      );
-      pointer-events: none;
-      z-index: 0;
+    /* ─── Gold text gradient utility ─── */
+    .gold-text {
+      background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 45%, var(--gold-dark) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
     }
 
-    /* Layout */
-    main {
+    /* ─── Ornament divider ─── */
+    .ornament {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      max-width: 260px;
+      margin: 0 auto;
+    }
+    .ornament-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(201, 168, 76, 0.35), transparent);
+    }
+    .ornament-glyph {
+      font-size: 0.875rem;
+      color: var(--gold);
+      opacity: 0.65;
+      line-height: 1;
+    }
+
+    /* ─── Section wrapper ─── */
+    .section {
       position: relative;
       z-index: 1;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 5rem 1.5rem;
+      padding: 6rem 1.5rem;
+    }
+    .section-alt { background: var(--obsidian-2); }
+    .section-alt2 { background: var(--obsidian-3); }
+
+    .wrap {
+      width: 100%;
+      max-width: var(--max-w);
+      margin: 0 auto;
+    }
+    .wrap-wide {
+      width: 100%;
+      max-width: var(--max-w-wide);
+      margin: 0 auto;
     }
 
-    .container {
-      width: 100%;
-      max-width: 520px;
-      display: flex;
-      flex-direction: column;
+    /* ─── Eyebrow label ─── */
+    .eyebrow {
+      font-family: var(--sans);
+      font-size: 0.6875rem;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold);
+      display: block;
+      margin-bottom: 1.25rem;
+    }
+
+    /* ─── Section headings ─── */
+    h2 {
+      font-family: var(--serif);
+      font-size: clamp(2rem, 4.5vw, 3rem);
+      font-weight: 400;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+      color: var(--white);
+      margin-bottom: 1.5rem;
+    }
+    h2 em {
+      font-style: italic;
+    }
+    h3 {
+      font-family: var(--serif);
+      font-size: clamp(1.25rem, 2.5vw, 1.625rem);
+      font-weight: 500;
+      line-height: 1.25;
+      color: var(--white);
+      margin-bottom: 0.75rem;
+    }
+
+    /* ─── CTA Button ─── */
+    .btn-cta {
+      display: inline-flex;
       align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      position: relative;
+      appearance: none;
+      border: none;
+      cursor: pointer;
+      font-family: var(--sans);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: #0A0700;
+      padding: 1.125rem 2.25rem;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-dark) 100%);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.15) inset,
+        0 6px 28px rgba(201, 168, 76, 0.28),
+        0 2px 8px rgba(201, 168, 76, 0.15);
+      transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
+      overflow: hidden;
+    }
+    .btn-cta::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.13) 0%, transparent 55%);
+      pointer-events: none;
+    }
+    .btn-cta:hover {
+      filter: brightness(1.08);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.15) inset,
+        0 10px 40px rgba(201, 168, 76, 0.38),
+        0 4px 12px rgba(201, 168, 76, 0.2);
+      transform: translateY(-2px);
+    }
+    .btn-cta:active { transform: translateY(0); }
+    .btn-cta:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.45);
+    }
+    .btn-cta-full { width: 100%; }
+
+    /* ─── ═══════════════════════════════ ─── */
+    /* ─── HERO SECTION                   ─── */
+    /* ─── ═══════════════════════════════ ─── */
+
+    #hero {
+      padding: 7rem 1.5rem 5rem;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+      background: var(--obsidian);
+    }
+
+    /* Ambient glow behind hero */
+    #hero::before {
+      content: "";
+      position: absolute;
+      top: -10%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 70vw;
+      height: 70vw;
+      max-width: 700px;
+      max-height: 700px;
+      background: radial-gradient(ellipse, rgba(201,168,76,0.09) 0%, transparent 65%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #hero .wrap { position: relative; z-index: 1; }
+
+    .hero-logomark {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 2.75rem;
+    }
+    .hero-logomark-line {
+      width: 40px;
+      height: 1px;
+    }
+    .hero-logomark-line.l { background: linear-gradient(90deg, transparent, var(--gold)); }
+    .hero-logomark-line.r { background: linear-gradient(90deg, var(--gold), transparent); }
+    .hero-logomark-diamond {
+      width: 9px;
+      height: 9px;
+      background: var(--gold);
+      transform: rotate(45deg);
+      box-shadow: 0 0 14px rgba(201, 168, 76, 0.6);
+    }
+    .hero-wordmark {
+      font-family: var(--serif);
+      font-size: 1.0625rem;
+      font-weight: 300;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .hero-eyebrow {
+      font-family: var(--sans);
+      font-size: 0.6875rem;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold);
+      opacity: 0.7;
+      display: block;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(2.75rem, 7vw, 4.5rem);
+      font-weight: 300;
+      line-height: 1.05;
+      letter-spacing: -0.015em;
+      color: var(--white);
+      margin-bottom: 0.5rem;
+    }
+    h1 em {
+      font-style: italic;
+      font-weight: 300;
+    }
+    h1 strong {
+      font-weight: 500;
+    }
+
+    .hero-sub {
+      font-family: var(--serif);
+      font-size: clamp(1.125rem, 2.5vw, 1.375rem);
+      font-weight: 300;
+      font-style: italic;
+      line-height: 1.45;
+      color: var(--muted-text);
+      margin-top: 0.875rem;
+      margin-bottom: 0;
+    }
+
+    /* ─── ═══════════════════════════════ ─── */
+    /* ─── VSL SECTION                    ─── */
+    /* ─── ═══════════════════════════════ ─── */
+
+    #vsl {
+      padding: 0 1.5rem 5.5rem;
+      position: relative;
+      z-index: 1;
       text-align: center;
     }
 
-    /* Logo mark */
-    .logomark {
+    .vsl-container {
+      position: relative;
+      width: 100%;
+      max-width: 760px;
+      margin: 0 auto 2.75rem;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid var(--gold-border);
+      box-shadow:
+        0 0 0 1px rgba(201, 168, 76, 0.06),
+        0 24px 64px rgba(0, 0, 0, 0.6),
+        0 0 80px rgba(201, 168, 76, 0.06);
+    }
+    .vsl-container::before {
+      content: "";
+      display: block;
+      padding-top: 56.25%;
+    }
+    .vsl-inner {
+      position: absolute;
+      inset: 0;
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 3rem;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1rem;
+      background: var(--obsidian-3);
     }
-    .logomark-line {
-      width: 32px;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--gold));
+    /* Replace .vsl-inner with an actual iframe for production: */
+    /* <iframe src="YOUR_VIDEO_URL" frameborder="0" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%"></iframe> */
+    .vsl-play-btn {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 32px rgba(201, 168, 76, 0.3);
     }
-    .logomark-line.right {
-      background: linear-gradient(90deg, var(--gold), transparent);
+    .vsl-play-btn svg {
+      width: 28px;
+      height: 28px;
+      fill: #0A0700;
+      margin-left: 4px;
     }
-    .logomark-diamond {
-      width: 8px;
-      height: 8px;
-      background: var(--gold);
-      transform: rotate(45deg);
-      box-shadow: 0 0 12px rgba(201, 168, 76, 0.5);
+    .vsl-label {
+      font-size: 0.8125rem;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--dim-text);
     }
 
-    /* Eyebrow */
-    .eyebrow {
+    .vsl-note {
+      font-size: 0.8125rem;
+      font-weight: 300;
+      letter-spacing: 0.04em;
+      color: var(--dim-text);
+      margin-top: 1.25rem;
+    }
+
+    /* ─── ═══════════════════════════════ ─── */
+    /* ─── BEFORE / AFTER SECTION         ─── */
+    /* ─── ═══════════════════════════════ ─── */
+
+    #problema .section-heading {
+      text-align: center;
+      margin-bottom: 3.5rem;
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 0;
+      align-items: start;
+    }
+
+    .comparison-col {
+      padding: 2.25rem 2rem;
+      border-radius: var(--radius);
+    }
+    .comparison-col.before {
+      background: rgba(255,255,255,0.018);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .comparison-col.after {
+      background: rgba(201,168,76,0.04);
+      border: 1px solid rgba(201,168,76,0.14);
+    }
+
+    .comparison-divider {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 2.25rem 1.5rem 0;
+      gap: 8px;
+    }
+    .comparison-divider-line {
+      flex: 1;
+      width: 1px;
+      min-height: 60px;
+      background: linear-gradient(180deg, transparent, rgba(201,168,76,0.2), transparent);
+    }
+
+    .comparison-title {
+      font-family: var(--serif);
+      font-size: 1.125rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+    .comparison-col.before .comparison-title { color: var(--muted-text); }
+    .comparison-col.after .comparison-title { color: var(--gold); }
+
+    .comparison-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .comparison-list li {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      font-size: 0.9375rem;
+      font-weight: 300;
+      line-height: 1.5;
+    }
+    .comparison-col.before .comparison-list li { color: var(--muted-text); }
+    .comparison-col.after .comparison-list li { color: var(--cream); }
+
+    .comparison-list li::before {
+      content: "—";
+      flex-shrink: 0;
+      margin-top: 0.05em;
+    }
+    .comparison-col.before .comparison-list li::before { color: rgba(255,255,255,0.15); }
+    .comparison-col.after .comparison-list li::before { color: var(--gold); }
+
+    @media (max-width: 640px) {
+      .comparison-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+      .comparison-divider { display: none; }
+    }
+
+    /* ─── ═══════════════════════════════ ─── */
+    /* ─── AGITATION SECTION              ─── */
+    /* ─── ═══════════════════════════════ ─── */
+
+    #tentou { text-align: center; }
+
+    .agitation-lead {
+      font-family: var(--serif);
+      font-size: clamp(1.375rem, 3vw, 1.875rem);
+      font-weight: 400;
+      font-style: italic;
+      line-height: 1.45;
+      color: var(--white);
+      margin-bottom: 2rem;
+    }
+
+    .agitation-body {
+      font-size: 1rem;
+      font-weight: 300;
+      line-height: 1.7;
+      color: var(--muted-text);
+      margin-bottom: 1.25rem;
+    }
+
+    .agitation-list {
+      list-style: none;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 0.875rem;
+      margin: 2rem auto;
+      max-width: 560px;
+    }
+    .agitation-list li {
+      display: flex;
+      gap: 0.875rem;
+      align-items: flex-start;
+      font-size: 0.9375rem;
+      font-weight: 300;
+      color: var(--muted-text);
+      line-height: 1.55;
+    }
+    .agitation-list li .bullet-dash {
+      color: var(--gold-dark);
+      flex-shrink: 0;
+      margin-top: 0.1em;
+    }
+
+    .agitation-conclusion {
+      font-family: var(--serif);
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      font-style: italic;
+      color: var(--gold-light);
+      opacity: 0.85;
+      margin-top: 2rem;
+    }
+
+    /* ─── ═══════════════════════════════ ─── */
+    /* ─── SOLUTION / PILLARS SECTION     ─── */
+    /* ─── ═══════════════════════════════ ─── */
+
+    #solucao { text-align: center; }
+
+    .solution-lead {
+      font-family: var(--serif);
+      font-size: clamp(1.5rem, 3.5vw, 2.125rem);
+      font-weight: 400;
+      font-style: italic;
+      line-height: 1.35;
+      color: var(--white);
+      margin-bottom: 0.75rem;
+    }
+
+    .solution-sub {
+      font-size: 1rem;
+      font-weight: 300;
+      color: var(--muted-text);
+      margin-bottom: 3.5rem;
+    }
+
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      text-align: left;
+      margin-bottom: 3.5rem;
+    }
+
+    .pillar-card {
+      background: var(--obsidian-4);
+      border: 1px solid var(--gold-border);
+      border-radius: 4px;
+      padding: 2rem 1.75rem;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .pillar-card:hover {
+      border-color: rgba(201,168,76,0.38);
+      box-shadow: 0 8px 32px rgba(201,168,76,0.08);
+    }
+
+    .pillar-number {
+      font-family: var(--serif);
+      font-size: 3rem;
+      font-weight: 300;
+      line-height: 1;
+      display: block;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+      opacity: 0.75;
+    }
+
+    .pillar-title {
+      font-family: var(--serif);
+      font-size: 1.25rem;
+      font-weight: 500;
+      color: var(--white);
+      margin-bottom: 0.625rem;
+      line-height: 1.25;
+    }
+
+    .pillar-desc {
+      font-size: 0.9rem;
+      font-weight: 300;
+      line-height: 1.65;
+      color: var(--muted-text);
+    }
+
+    @media (max-width: 580px) {
+      .pillars-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ─── ═══════════════════════════════ ─── */
+    /* ─── QUALIFICATION SECTION          ─── */
+    /* ─── ═══════════════════════════════ ─── */
+
+    #para-quem .section-heading {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .qual-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .qual-panel {
+      border-radius: 4px;
+      padding: 2.25rem 2rem;
+    }
+    .qual-panel.yes {
+      background: rgba(201,168,76,0.05);
+      border: 1px solid rgba(201,168,76,0.2);
+    }
+    .qual-panel.no {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .qual-panel-title {
+      font-family: var(--serif);
+      font-size: 1.125rem;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+    }
+    .qual-panel.yes .qual-panel-title {
+      color: var(--gold-light);
+      border-bottom: 1px solid rgba(201,168,76,0.18);
+    }
+    .qual-panel.no .qual-panel-title {
+      color: var(--muted-text);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .qual-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .qual-list li {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      font-size: 0.9rem;
+      font-weight: 300;
+      line-height: 1.55;
+    }
+    .qual-panel.yes .qual-list li { color: rgba(240,235,224,0.8); }
+    .qual-panel.no .qual-list li { color: var(--muted-text); }
+
+    .qual-icon {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 0.1em;
+      font-size: 0.625rem;
+      font-weight: 700;
+    }
+    .qual-panel.yes .qual-icon {
+      background: rgba(201,168,76,0.15);
+      color: var(--gold);
+    }
+    .qual-panel.no .qual-icon {
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.2);
+    }
+
+    @media (max-width: 600px) {
+      .qual-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ─── ═══════════════════════════════ ─── */
+    /* ─── FAQ SECTION                    ─── */
+    /* ─── ═══════════════════════════════ ─── */
+
+    #faq .section-heading { text-align: center; margin-bottom: 2.75rem; }
+
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    details.faq-item {
+      border: 1px solid var(--gold-border);
+      border-radius: 4px;
+      overflow: hidden;
+      background: var(--obsidian-3);
+      transition: border-color var(--transition);
+    }
+    details.faq-item[open] {
+      border-color: rgba(201,168,76,0.32);
+    }
+    details.faq-item summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1.375rem 1.75rem;
+      cursor: pointer;
+      list-style: none;
+      font-family: var(--serif);
+      font-size: 1.0625rem;
+      font-weight: 500;
+      color: var(--white);
+      line-height: 1.35;
+      user-select: none;
+    }
+    details.faq-item summary::-webkit-details-marker { display: none; }
+    details.faq-item summary::after {
+      content: "+";
+      flex-shrink: 0;
       font-family: var(--sans);
+      font-size: 1.25rem;
+      font-weight: 300;
+      color: var(--gold);
+      transition: transform var(--transition), opacity var(--transition);
+    }
+    details.faq-item[open] summary::after {
+      transform: rotate(45deg);
+    }
+    .faq-body {
+      padding: 0 1.75rem 1.5rem;
+      font-size: 0.9375rem;
+      font-weight: 300;
+      line-height: 1.7;
+      color: var(--muted-text);
+    }
+
+    /* ─── ═══════════════════════════════ ─── */
+    /* ─── MENTORS SECTION                ─── */
+    /* ─── ═══════════════════════════════ ─── */
+
+    #mentores .section-heading { text-align: center; margin-bottom: 3rem; }
+
+    .mentors-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .mentor-card {
+      background: var(--obsidian-4);
+      border: 1px solid var(--gold-border);
+      border-radius: 4px;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      transition: border-color var(--transition);
+    }
+    .mentor-card:hover {
+      border-color: rgba(201,168,76,0.38);
+    }
+
+    .mentor-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold-dark), rgba(201,168,76,0.3));
+      border: 1px solid var(--gold-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.25rem;
+      font-family: var(--serif);
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: var(--gold-light);
+    }
+
+    .mentor-name {
+      font-family: var(--serif);
+      font-size: 1.375rem;
+      font-weight: 500;
+      color: var(--white);
+      margin-bottom: 0.375rem;
+    }
+
+    .mentor-role {
+      font-size: 0.8125rem;
+      font-weight: 300;
+      letter-spacing: 0.04em;
+      color: var(--gold);
+      opacity: 0.8;
+      margin-bottom: 1.25rem;
+      display: block;
+    }
+
+    .mentor-desc {
+      font-size: 0.9rem;
+      font-weight: 300;
+      line-height: 1.65;
+      color: var(--muted-text);
+    }
+
+    .mentor-stat {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1.25rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--gold-border);
+      border-radius: 2px;
+      font-size: 0.8125rem;
+      font-weight: 400;
+      color: var(--gold);
+    }
+
+    @media (max-width: 580px) {
+      .mentors-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ─── ═══════════════════════════════ ─── */
+    /* ─── FINAL CTA SECTION              ─── */
+    /* ─── ═══════════════════════════════ ─── */
+
+    #final-cta {
+      position: relative;
+      text-align: center;
+      overflow: hidden;
+    }
+    #final-cta::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.1) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    #final-cta .wrap { position: relative; z-index: 1; }
+
+    .final-cta-lead {
+      font-family: var(--serif);
+      font-size: clamp(1.875rem, 4vw, 2.75rem);
+      font-weight: 300;
+      line-height: 1.2;
+      color: var(--white);
+      margin-bottom: 1rem;
+    }
+    .final-cta-lead em { font-style: italic; }
+
+    .final-cta-sub {
+      font-size: 1rem;
+      font-weight: 300;
+      line-height: 1.7;
+      color: var(--muted-text);
+      max-width: 540px;
+      margin: 0 auto 0.75rem;
+    }
+
+    .final-cta-note {
+      font-size: 0.875rem;
+      font-weight: 300;
+      color: var(--dim-text);
+      margin-top: 0.5rem;
+    }
+
+    /* ─── ═══════════════════════════════ ─── */
+    /* ─── FOOTER                         ─── */
+    /* ─── ═══════════════════════════════ ─── */
+
+    footer {
+      position: relative;
+      z-index: 1;
+      padding: 2rem 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      text-align: center;
+    }
+
+    .footer-ornament {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 1.25rem;
+      opacity: 0.2;
+    }
+    .footer-ornament-line {
+      width: 24px;
+      height: 1px;
+      background: var(--gold);
+    }
+    .footer-ornament-glyph {
+      font-size: 0.625rem;
+      color: var(--gold);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .footer-text {
+      font-size: 0.75rem;
+      font-weight: 300;
+      letter-spacing: 0.04em;
+      color: var(--dim-text);
+    }
+
+    /* ─── ═══════════════════════════════ ─── */
+    /* ─── MODAL                          ─── */
+    /* ─── ═══════════════════════════════ ─── */
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(4, 4, 4, 0.88);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .modal-overlay.is-open {
+      display: flex;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 460px;
+      background: var(--obsidian-3);
+      border: 1px solid var(--gold-border);
+      border-radius: 6px;
+      padding: 2.75rem 2.5rem;
+      position: relative;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(201,168,76,0.06);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1.125rem;
+      right: 1.25rem;
+      width: 30px;
+      height: 30px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--dim-text);
+      font-size: 1.375rem;
+      line-height: 1;
+      transition: color var(--transition);
+    }
+    .modal-close:hover { color: var(--cream); }
+
+    .modal-eyebrow {
       font-size: 0.6875rem;
       font-weight: 500;
       letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--gold);
-      margin-bottom: 1.25rem;
+      display: block;
+      margin-bottom: 0.875rem;
     }
 
-    /* Headline */
-    h1 {
+    .modal-title {
       font-family: var(--serif);
-      font-size: clamp(2.5rem, 6vw, 3.75rem);
-      font-weight: 300;
-      line-height: 1.08;
-      letter-spacing: -0.01em;
+      font-size: 1.875rem;
+      font-weight: 400;
+      line-height: 1.15;
       color: var(--white);
-      margin: 0 0 0.5rem;
+      margin-bottom: 0.5rem;
     }
-    h1 em {
-      font-style: italic;
-      background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-dark) 100%);
-      -webkit-background-clip: text;
-              background-clip: text;
-      -webkit-text-fill-color: transparent;
-      color: transparent;
+    .modal-title em { font-style: italic; }
+
+    .modal-sub {
+      font-size: 0.9rem;
+      font-weight: 300;
+      color: var(--muted-text);
+      margin-bottom: 2rem;
+      line-height: 1.6;
     }
 
-    /* Ornament divider */
-    .ornament {
+    .modal-ornament {
+      margin: 0 0 2rem;
       display: flex;
       align-items: center;
       gap: 12px;
-      margin: 1.75rem 0;
-      width: 100%;
-      max-width: 320px;
-    }
-    .ornament-line {
-      flex: 1;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(201, 168, 76, 0.3), transparent);
-    }
-    .ornament-glyph {
-      font-family: var(--serif);
-      font-size: 1rem;
-      color: var(--gold);
-      opacity: 0.7;
-      line-height: 1;
+      max-width: 200px;
     }
 
-    /* Subheadline */
-    .sub {
-      font-family: var(--sans);
-      font-size: 1rem;
-      font-weight: 300;
-      line-height: 1.7;
-      color: rgba(248, 244, 236, 0.6);
-      margin: 0 0 2.5rem;
-      max-width: 400px;
-    }
-
-    /* Form */
-    form.signup {
-      width: 100%;
+    form.modal-form {
       display: flex;
       flex-direction: column;
       gap: 0.625rem;
@@ -237,179 +1037,504 @@
       outline: none;
       transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
     }
-    .input-wrap input::placeholder { color: rgba(248, 244, 236, 0.22); }
+    .input-wrap input::placeholder { color: rgba(248, 244, 236, 0.2); }
     .input-wrap input:focus {
       border-color: rgba(201, 168, 76, 0.45);
-      background: rgba(201, 168, 76, 0.04);
-      box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.08);
+      background: rgba(201, 168, 76, 0.035);
+      box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.07);
     }
 
-    /* CTA button */
-    .btn-cta {
-      position: relative;
-      appearance: none;
-      border: none;
-      cursor: pointer;
-      font-family: var(--sans);
-      font-size: 0.8125rem;
-      font-weight: 500;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--obsidian);
-      padding: 1.0625rem 2rem;
-      border-radius: var(--radius);
-      background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 55%, var(--gold-dark) 100%);
-      box-shadow:
-        0 1px 0 rgba(255,255,255,0.14) inset,
-        0 4px 20px rgba(201, 168, 76, 0.22);
-      transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
-      width: 100%;
-      margin-top: 0.375rem;
-      overflow: hidden;
-    }
-    .btn-cta::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 60%);
-      pointer-events: none;
-    }
-    .btn-cta:hover {
-      filter: brightness(1.07);
-      box-shadow:
-        0 1px 0 rgba(255,255,255,0.14) inset,
-        0 8px 32px rgba(201, 168, 76, 0.32);
-      transform: translateY(-1px);
-    }
-    .btn-cta:active  { transform: translateY(0); }
-    .btn-cta:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .btn-cta:focus-visible {
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.4);
-    }
-
-    /* Fine print */
-    .fine {
+    .form-fine {
       font-size: 0.75rem;
       font-weight: 300;
       letter-spacing: 0.03em;
-      color: rgba(248, 244, 236, 0.25);
-      margin-top: 0.5rem;
+      color: rgba(248, 244, 236, 0.22);
+      margin-top: 0.25rem;
+      text-align: center;
     }
 
-    .error {
+    .form-error {
       display: none;
       font-size: 0.8125rem;
       color: #e87979;
-    }
-    .error.is-on { display: block; }
-
-    /* Success state */
-    .success {
-      display: none;
-      width: 100%;
-      padding: 2rem 1.5rem;
-      border: 1px solid rgba(201, 168, 76, 0.22);
-      border-radius: var(--radius);
-      background: rgba(201, 168, 76, 0.05);
       text-align: center;
     }
-    .success.is-on { display: block; }
-    .success-glyph {
-      font-size: 1.25rem;
-      color: var(--gold);
-      margin-bottom: 0.75rem;
+    .form-error.is-on { display: block; }
+
+    .modal-success {
+      display: none;
+      text-align: center;
+      padding: 1rem 0;
     }
-    .success strong {
+    .modal-success.is-on { display: block; }
+    .modal-success-glyph {
+      font-size: 1.5rem;
+      color: var(--gold);
+      margin-bottom: 1rem;
+    }
+    .modal-success strong {
       display: block;
       font-family: var(--serif);
-      font-size: 1.5rem;
+      font-size: 1.625rem;
       font-weight: 400;
       color: var(--gold-light);
-      margin-bottom: 0.375rem;
+      margin-bottom: 0.5rem;
     }
-    .success span {
-      font-size: 0.875rem;
+    .modal-success span {
+      font-size: 0.9rem;
       font-weight: 300;
-      color: rgba(248, 244, 236, 0.5);
+      color: var(--muted-text);
     }
 
-    /* Trust bar */
-    .trust {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 1.25rem;
-      margin-top: 2.5rem;
-      flex-wrap: wrap;
+    /* ─── Entrance animations ─── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
     }
-    .trust-item {
-      font-size: 0.6875rem;
-      font-weight: 400;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: rgba(248, 244, 236, 0.25);
-    }
-    .trust-sep {
-      width: 3px;
-      height: 3px;
-      border-radius: 50%;
-      background: var(--gold);
-      opacity: 0.3;
+    .fade-in.visible {
+      opacity: 1;
+      transform: none;
     }
 
-    /* Footer ornament */
-    .footer-ornament {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 3.5rem;
-      opacity: 0.18;
-    }
-    .footer-ornament-line {
-      width: 20px;
-      height: 1px;
-      background: var(--gold);
-    }
-    .footer-ornament-glyph {
-      font-size: 0.5625rem;
-      color: var(--gold);
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-    }
+    /* ─── ═══════════════════════════════ ─── */
+    /* ─── RESPONSIVE                     ─── */
+    /* ─── ═══════════════════════════════ ─── */
 
     @media (max-width: 480px) {
-      main { padding: 3.5rem 1.25rem; }
-      h1   { font-size: 2.25rem; }
+      .section { padding: 4rem 1.25rem; }
+      #hero { padding: 5rem 1.25rem 4rem; }
+      #vsl { padding: 0 1.25rem 4rem; }
+      h1 { font-size: 2.5rem; }
+      h2 { font-size: 1.875rem; }
+      .modal { padding: 2.25rem 1.5rem; }
+      .modal-title { font-size: 1.625rem; }
     }
   </style>
 </head>
 <body>
-  <main>
-    <div class="container">
 
-      <div class="logomark" aria-hidden="true">
-        <span class="logomark-line"></span>
-        <span class="logomark-diamond"></span>
-        <span class="logomark-line right"></span>
+  <!-- ═══════════════════════ HERO ═══════════════════════ -->
+  <section id="hero">
+    <div class="wrap">
+
+      <div class="hero-logomark" aria-hidden="true">
+        <span class="hero-logomark-line l"></span>
+        <span class="hero-logomark-diamond"></span>
+        <span class="hero-logomark-line r"></span>
       </div>
 
-      <p class="eyebrow">Acesso Exclusivo</p>
+      <span class="hero-wordmark">Golden Med</span>
 
-      <h1>Sua vaga está<br><em>reservada.</em></h1>
+      <div style="height:2.5rem"></div>
 
-      <div class="ornament" aria-hidden="true">
+      <span class="hero-eyebrow">Programa de Implementação Financeira e Comercial</span>
+
+      <h1>
+        <em class="gold-text">Mais margem.</em><br>
+        Menos trabalho.
+      </h1>
+
+      <p class="hero-sub">De volta aos tempos dourados da medicina.</p>
+
+      <div style="height:1.5rem"></div>
+
+      <div class="ornament">
         <span class="ornament-line"></span>
         <span class="ornament-glyph">✦</span>
         <span class="ornament-line"></span>
       </div>
 
-      <p class="sub">
-        Uma oportunidade pensada para quem leva resultados a sério.
-        Preencha abaixo e receba as informações com prioridade.
+      <div style="height:1.25rem"></div>
+
+      <p style="font-size:0.9375rem;font-weight:300;color:var(--muted-text);line-height:1.65;max-width:520px;margin:0 auto;">
+        Para clínicas e consultórios médicos que faturam acima de 75k/mês — e sabem que esse número deveria ser maior.
       </p>
 
-      <form class="signup" id="signup" novalidate>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ VSL ═══════════════════════ -->
+  <section id="vsl">
+    <div class="vsl-container">
+      <!-- Substitua o conteúdo abaixo pelo iframe do seu vídeo em produção -->
+      <div class="vsl-inner">
+        <div class="vsl-play-btn" aria-hidden="true">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        </div>
+        <span class="vsl-label">Assista ao vídeo</span>
+      </div>
+    </div>
+
+    <div style="text-align:center">
+      <button class="btn-cta open-modal" type="button">
+        Quero agendar minha call de diagnóstico
+      </button>
+      <p class="vsl-note">Sem compromisso. 100% gratuito.</p>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════ BEFORE / AFTER ═══════════════════ -->
+  <section id="problema" class="section section-alt">
+    <div class="wrap-wide">
+
+      <div class="section-heading fade-in">
+        <span class="eyebrow">O cenário mudou</span>
+        <h2>A medicina que você aprendou<br>não é a mesma que o mercado exige <em>hoje.</em></h2>
+      </div>
+
+      <div class="comparison-grid fade-in">
+        <div class="comparison-col before">
+          <p class="comparison-title">Antigamente</p>
+          <ul class="comparison-list">
+            <li>Domínio técnico era o diferencial mais importante</li>
+            <li>Plantão pagava bem e complementava a renda</li>
+            <li>Consulta avulsa era o modelo — e funcionava</li>
+            <li>O médico que trabalhava mais horas ganhava mais</li>
+            <li>Reputação clínica se traduzia diretamente em faturamento</li>
+          </ul>
+        </div>
+
+        <div class="comparison-divider" aria-hidden="true">
+          <div class="comparison-divider-line"></div>
+          <span style="color:var(--gold);font-size:1.125rem;opacity:0.4">✦</span>
+          <div class="comparison-divider-line"></div>
+        </div>
+
+        <div class="comparison-col after">
+          <p class="comparison-title">Hoje</p>
+          <ul class="comparison-list">
+            <li>Visibilidade e posicionamento valem mais do que conhecimento técnico</li>
+            <li>Plantão paga cada vez menos — e cansa cada vez mais</li>
+            <li>Consulta avulsa não tem recorrência, não tem previsibilidade, não escala</li>
+            <li>Ganha mais o médico que parou de vender só horas</li>
+            <li>Reputação clínica não paga conta. Percepção de valor, sim.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════ AGITATION ═══════════════════════ -->
+  <section id="tentou" class="section">
+    <div class="wrap">
+
+      <div class="fade-in" style="text-align:center">
+        <span class="eyebrow">Você já tentou mudar isso</span>
+        <p class="agitation-lead">
+          Contratou agência. Contratou social media.<br>
+          Fez curso de posicionamento. Investiu em mentoria.
+        </p>
+        <p class="agitation-body">
+          E no final das contas, foi menos dinheiro no seu bolso.<br>
+          Você acreditou. Investiu. E não saiu do lugar.
+        </p>
+
+        <div class="ornament" style="margin:2rem auto">
+          <span class="ornament-line"></span>
+          <span class="ornament-glyph">✦</span>
+          <span class="ornament-line"></span>
+        </div>
+
+        <p style="font-size:1rem;font-weight:300;color:var(--muted-text);margin-bottom:0.5rem">
+          O problema não está em mais ou menos pacientes.
+        </p>
+        <p style="font-family:var(--serif);font-size:1.25rem;font-weight:500;color:var(--gold-light);margin-bottom:2rem">
+          Está no modelo de negócio.
+        </p>
+      </div>
+
+      <ul class="agitation-list fade-in">
+        <li>
+          <span class="bullet-dash">—</span>
+          Consultas avulsas sem recorrência — você recomeça do zero todo mês
+        </li>
+        <li>
+          <span class="bullet-dash">—</span>
+          Secretária que recebe paciente mas não sabe vender — a agenda vaza antes de encher
+        </li>
+        <li>
+          <span class="bullet-dash">—</span>
+          Precificação baseada no que os colegas cobram — não no que o seu trabalho vale
+        </li>
+        <li>
+          <span class="bullet-dash">—</span>
+          Clínica que depende de você pra absolutamente tudo — quando você para, tudo para
+        </li>
+      </ul>
+
+      <p class="agitation-conclusion fade-in">
+        Esse não é um problema de competência.<br>
+        É um problema de modelo de negócio.
+      </p>
+
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════ SOLUTION ═══════════════════════ -->
+  <section id="solucao" class="section section-alt2">
+    <div class="wrap-wide">
+
+      <div class="fade-in" style="text-align:center;margin-bottom:0.5rem">
+        <span class="eyebrow">A única entrega que importa</span>
+        <h2><em class="gold-text">Mais lucro</em> com menos trabalho.</h2>
+        <p class="solution-sub">
+          Não mais uma promessa vaga. Um resultado concreto, construído em cima de quatro pilares
+          que atuam ao mesmo tempo na sua clínica.
+        </p>
+      </div>
+
+      <div class="pillars-grid fade-in">
+        <div class="pillar-card">
+          <span class="pillar-number">01</span>
+          <p class="pillar-title">Geração de Receita Nova</p>
+          <p class="pillar-desc">
+            Sem tráfego pago. Sem dancinha. Somente com estratégias orgânicas que atraem pacientes
+            de alto valor — através de parcerias, posicionamento e processo de indicação ativo.
+          </p>
+        </div>
+        <div class="pillar-card">
+          <span class="pillar-number">02</span>
+          <p class="pillar-title">Otimização de Lucro, Faturamento e Tempo</p>
+          <p class="pillar-desc">
+            Secretária treinada no comercial. Criação de metodologia própria de tratamento e planos
+            de acompanhamento. Estrutura de triagem e processo para aumentar a conversão em consulta.
+          </p>
+        </div>
+        <div class="pillar-card">
+          <span class="pillar-number">03</span>
+          <p class="pillar-title">Liberação de Lucros Ocultos</p>
+          <p class="pillar-desc">
+            Reprecificação por percepção de valor e ancoragem. Aumento de preço imediato.
+            Análise de margem com garantia de chegar em no mínimo 50% de lucro.
+          </p>
+        </div>
+        <div class="pillar-card">
+          <span class="pillar-number">04</span>
+          <p class="pillar-title">Diagnóstico Acelerador</p>
+          <p class="pillar-desc">
+            Todo mês analisamos seu negócio do ponto de vista financeiro e comercial.
+            Identificamos os gargalos que estão te impedindo de avançar — antes que virem problema maior.
+          </p>
+        </div>
+      </div>
+
+      <div class="fade-in" style="text-align:center">
+        <button class="btn-cta open-modal" type="button">
+          Quero mais lucro e trabalhar menos
+        </button>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════ QUALIFICATION ═══════════════════════ -->
+  <section id="para-quem" class="section section-alt">
+    <div class="wrap-wide">
+
+      <div class="section-heading fade-in">
+        <span class="eyebrow">Qualificação</span>
+        <h2>Para quem é a <em class="gold-text">Golden Med</em></h2>
+      </div>
+
+      <div class="qual-grid fade-in">
+        <div class="qual-panel yes">
+          <p class="qual-panel-title">É para você que</p>
+          <ul class="qual-list">
+            <li>
+              <span class="qual-icon">✓</span>
+              Fatura entre 75k e 150k por mês e sabe que esse número deveria ser maior
+            </li>
+            <li>
+              <span class="qual-icon">✓</span>
+              Tem uma base sólida de pacientes — mas não tem sistema para fazer essa base render mais
+            </li>
+            <li>
+              <span class="qual-icon">✓</span>
+              Não se conforma com a distância entre a qualidade técnica que entrega e o que recebe por isso
+            </li>
+            <li>
+              <span class="qual-icon">✓</span>
+              Quer mais tempo fora do consultório sem abrir mão do crescimento financeiro
+            </li>
+            <li>
+              <span class="qual-icon">✓</span>
+              Já tentou agência, tráfego pago ou mentoria — e ainda está esperando o resultado aparecer
+            </li>
+          </ul>
+        </div>
+
+        <div class="qual-panel no">
+          <p class="qual-panel-title">Não é para você que</p>
+          <ul class="qual-list">
+            <li>
+              <span class="qual-icon">✕</span>
+              Está começando do zero e ainda não tem base de pacientes consolidada
+            </li>
+            <li>
+              <span class="qual-icon">✕</span>
+              Quer mais um curso para assistir no fim de semana sem implementar nada
+            </li>
+            <li>
+              <span class="qual-icon">✕</span>
+              Não está disposto a seguir um processo estruturado com acompanhamento semanal
+            </li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════ FAQ ═══════════════════════ -->
+  <section id="faq" class="section">
+    <div class="wrap">
+
+      <div class="section-heading fade-in">
+        <span class="eyebrow">Dúvidas frequentes</span>
+        <h2>Dúvidas que aparecem<br><em>antes de decidir</em></h2>
+      </div>
+
+      <div class="faq-list fade-in">
+        <details class="faq-item">
+          <summary>Já contratei agência e não deu resultado. Por que a Golden Med seria diferente?</summary>
+          <div class="faq-body">
+            Agência executa por você — e você fica dependente do que eles decidem fazer.
+            O Golden Med implementa <em>com você</em>. Você tem um gestor de projeto dedicado que acompanha,
+            cobra e destravar o que travar semana a semana. Não é mais uma terceirização.
+            É implementação com responsabilidade compartilhada.
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary>Não sei se funciona para a minha especialidade.</summary>
+          <div class="faq-body">
+            O programa foi desenhado para endocrinologistas, ginecologistas e médicos com programa
+            de acompanhamento, ou dispostos a criar — especialidades onde recorrência, ticket médio
+            e relacionamento com o paciente são o centro do negócio. Se você se encaixa nesse perfil,
+            o modelo funciona.
+          </div>
+        </details>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════ MENTORS ═══════════════════════ -->
+  <section id="mentores" class="section section-alt2">
+    <div class="wrap-wide">
+
+      <div class="section-heading fade-in">
+        <span class="eyebrow">Quem está por trás</span>
+        <h2>Conheça os <em class="gold-text">mentores</em></h2>
+      </div>
+
+      <div class="mentors-grid fade-in">
+        <div class="mentor-card">
+          <div class="mentor-avatar" aria-hidden="true">IB</div>
+          <p class="mentor-name">Igor Brito</p>
+          <span class="mentor-role">Finanças &amp; Precificação para Clínicas Médicas</span>
+          <p class="mentor-desc">
+            Especialista em finanças e precificação para clínicas médicas.
+            Ajuda médicos a recuperar margem e construir modelos de negócio com recorrência real.
+          </p>
+          <div class="mentor-stat">
+            <span style="color:var(--gold-light);font-size:1rem">✦</span>
+            +5.000 clínicas atendidas
+          </div>
+        </div>
+
+        <div class="mentor-card">
+          <div class="mentor-avatar" aria-hidden="true">JC</div>
+          <p class="mentor-name">Jhonata Cappellaro</p>
+          <span class="mentor-role">Marketing &amp; Vendas para Clínicas Médicas</span>
+          <p class="mentor-desc">
+            Especialista em marketing e vendas para clínicas médicas.
+            Transforma base de pacientes em receita previsível sem depender de tráfego pago.
+          </p>
+          <div class="mentor-stat">
+            <span style="color:var(--gold-light);font-size:1rem">✦</span>
+            +300 clientes ativos
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════ FINAL CTA ═══════════════════════ -->
+  <section id="final-cta" class="section">
+    <div class="wrap">
+
+      <div class="fade-in">
+        <div class="ornament" style="margin:0 auto 2.5rem">
+          <span class="ornament-line"></span>
+          <span class="ornament-glyph">✦</span>
+          <span class="ornament-line"></span>
+        </div>
+
+        <h2 class="final-cta-lead">
+          O próximo passo é simples.
+        </h2>
+
+        <p class="final-cta-sub">
+          Agende uma call de diagnóstico com a nossa equipe. É uma conversa onde a gente entende
+          a sua situação, identifica os principais gargalos da sua clínica e te mostra com clareza
+          o que está impedindo o seu faturamento de chegar no próximo nível.
+        </p>
+
+        <p style="font-size:0.9375rem;font-weight:300;color:var(--muted-text);margin-bottom:2.5rem">
+          Sem pressão. Se fizer sentido depois dessa conversa, a gente apresenta a proposta.
+        </p>
+
+        <button class="btn-cta open-modal" type="button">
+          Quero agendar minha call de diagnóstico
+        </button>
+
+        <p class="final-cta-note">Vagas limitadas. Gratuito e sem compromisso.</p>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════ FOOTER ═══════════════════════ -->
+  <footer>
+    <div class="footer-ornament" aria-hidden="true">
+      <span class="footer-ornament-line"></span>
+      <span class="footer-ornament-glyph">✦</span>
+      <span class="footer-ornament-line"></span>
+    </div>
+    <p class="footer-text">Golden Med &nbsp;·&nbsp; Todos os direitos reservados</p>
+  </footer>
+
+
+  <!-- ═══════════════════════ MODAL ═══════════════════════ -->
+  <div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <button class="modal-close" id="modal-close" aria-label="Fechar">&times;</button>
+
+      <span class="modal-eyebrow">Golden Med</span>
+      <h2 class="modal-title" id="modal-title">Agende sua<br><em class="gold-text">call de diagnóstico</em></h2>
+      <p class="modal-sub">Preencha abaixo e nossa equipe entrará em contato para confirmar o horário.</p>
+
+      <div class="modal-ornament">
+        <span class="ornament-line"></span>
+        <span class="ornament-glyph">✦</span>
+        <span class="ornament-line"></span>
+      </div>
+
+      <form class="modal-form" id="lead-form" novalidate>
         <div class="input-wrap">
           <input
             id="name" name="name" type="text"
@@ -428,90 +1553,107 @@
           <input
             id="phone" name="phone" type="tel"
             inputmode="numeric" autocomplete="tel"
-            placeholder="WhatsApp (com DDD)"
+            placeholder="WhatsApp com DDD"
             aria-label="Seu WhatsApp">
         </div>
 
-        <button class="btn-cta" type="submit" id="submit-btn">
+        <div style="height:0.25rem"></div>
+
+        <button class="btn-cta btn-cta-full" type="submit" id="submit-btn">
           Garantir minha vaga
         </button>
 
-        <p class="fine">Seus dados estão protegidos. Sem spam.</p>
-        <p class="error" id="form-error" role="alert"></p>
+        <p class="form-fine">Seus dados estão protegidos. Sem spam.</p>
+        <p class="form-error" id="form-error" role="alert"></p>
       </form>
 
-      <div class="success" id="success" role="status" aria-live="polite">
-        <div class="success-glyph" aria-hidden="true">✦</div>
-        <strong>Vaga garantida.</strong>
-        <span>Em breve você receberá todas as informações.</span>
+      <div class="modal-success" id="modal-success" role="status" aria-live="polite">
+        <div class="modal-success-glyph" aria-hidden="true">✦</div>
+        <strong>Solicitação recebida.</strong>
+        <span>Em breve nossa equipe entrará em contato para confirmar sua call.</span>
       </div>
-
-      <div class="trust" aria-label="Garantias">
-        <span class="trust-item">Acesso privado</span>
-        <span class="trust-sep" aria-hidden="true"></span>
-        <span class="trust-item">100% seguro</span>
-        <span class="trust-sep" aria-hidden="true"></span>
-        <span class="trust-item">Sem spam</span>
-      </div>
-
-      <div class="footer-ornament" aria-hidden="true">
-        <span class="footer-ornament-line"></span>
-        <span class="footer-ornament-glyph">✦</span>
-        <span class="footer-ornament-line"></span>
-      </div>
-
     </div>
-  </main>
+  </div>
+
 
   <script>
   (function () {
-    const form      = document.getElementById('signup');
-    const success   = document.getElementById('success');
-    const errorEl   = document.getElementById('form-error');
-    const submitBtn = document.getElementById('submit-btn');
+    // ─── Modal open/close ───
+    var overlay   = document.getElementById('modal-overlay');
+    var closeBtn  = document.getElementById('modal-close');
+    var openBtns  = document.querySelectorAll('.open-modal');
+
+    function openModal() {
+      overlay.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+      var firstInput = overlay.querySelector('input');
+      if (firstInput) setTimeout(function() { firstInput.focus(); }, 80);
+    }
+    function closeModal() {
+      overlay.classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+
+    openBtns.forEach(function(btn) {
+      btn.addEventListener('click', openModal);
+    });
+
+    closeBtn.addEventListener('click', closeModal);
+
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) closeModal();
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    // ─── Lead form submission ───
+    var form      = document.getElementById('lead-form');
+    var success   = document.getElementById('modal-success');
+    var errorEl   = document.getElementById('form-error');
+    var submitBtn = document.getElementById('submit-btn');
     if (!form) return;
 
-    form.addEventListener('submit', async (e) => {
+    form.addEventListener('submit', async function(e) {
       e.preventDefault();
       errorEl.classList.remove('is-on');
       errorEl.textContent = '';
 
-      const nameInput  = form.elements.name;
-      const emailInput = form.elements.email;
-      const phoneInput = form.elements.phone;
+      var nameInput  = form.elements.name;
+      var emailInput = form.elements.email;
+      var phoneInput = form.elements.phone;
 
       if (!emailInput.value || !emailInput.checkValidity()) {
         emailInput.focus();
         return;
       }
 
-      const fullName  = nameInput.value.trim();
-      const email     = emailInput.value.trim();
-      const phone     = phoneInput.value.trim().replace(/\D/g, '');
-      const parts     = fullName.split(/\s+/);
-      const firstName = parts[0] || '';
-      const lastName  = parts.slice(1).join(' ') || '';
+      var fullName  = nameInput.value.trim();
+      var email     = emailInput.value.trim();
+      var phone     = phoneInput.value.trim().replace(/\D/g, '');
+      var parts     = fullName.split(/\s+/);
+      var firstName = parts[0] || '';
+      var lastName  = parts.slice(1).join(' ') || '';
 
       submitBtn.disabled = true;
-      const originalHTML = submitBtn.innerHTML;
+      var originalHTML = submitBtn.innerHTML;
       submitBtn.textContent = 'Aguarde…';
 
-      const eventId   = crypto.randomUUID();
-      const eventTime = Math.floor(Date.now() / 1000);
+      var eventId   = crypto.randomUUID();
+      var eventTime = Math.floor(Date.now() / 1000);
 
-      // Browser-side pixel fire (deduped by event_id against CAPI)
       try {
         if (window.fbq) fbq('track', 'Lead', {}, { eventID: eventId });
       } catch (_) {}
 
-      // Server-side CAPI fire via /tracker
       try {
-        const userData = { em: email };
+        var userData = { em: email };
         if (firstName) userData.fn = firstName;
         if (lastName)  userData.ln = lastName;
         if (phone)     userData.ph = phone;
 
-        const res = await fetch('/tracker', {
+        var res = await fetch('/tracker', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -524,8 +1666,8 @@
         });
 
         if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error || `server ${res.status}`);
+          var body = await res.json().catch(function() { return {}; });
+          throw new Error(body.error || 'server ' + res.status);
         }
 
         window.location.href = '/qualificacao';
@@ -537,6 +1679,18 @@
         console.error('Lead submit failed:', err);
       }
     });
+
+    // ─── Scroll animations ───
+    var fadeEls = document.querySelectorAll('.fade-in');
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    fadeEls.forEach(function(el) { observer.observe(el); });
   })();
   </script>
 </body>
