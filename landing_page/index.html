@@ -159,7 +159,7 @@
     h2 {
       font-family: var(--serif);
       font-size: clamp(2rem, 4.5vw, 3rem);
-      font-weight: 400;
+      font-weight: 500;
       line-height: 1.1;
       letter-spacing: -0.01em;
       color: var(--white);
@@ -167,6 +167,7 @@
     }
     h2 em {
       font-style: italic;
+      font-weight: 400;
     }
     h3 {
       font-family: var(--serif);
@@ -300,7 +301,7 @@
     h1 {
       font-family: var(--serif);
       font-size: clamp(2.75rem, 7vw, 4.5rem);
-      font-weight: 300;
+      font-weight: 500;
       line-height: 1.05;
       letter-spacing: -0.015em;
       color: var(--white);
@@ -308,19 +309,18 @@
     }
     h1 em {
       font-style: italic;
-      font-weight: 300;
+      font-weight: 400;
     }
     h1 strong {
-      font-weight: 500;
+      font-weight: 600;
     }
 
     .hero-sub {
       font-family: var(--serif);
       font-size: clamp(1.125rem, 2.5vw, 1.375rem);
-      font-weight: 300;
+      font-weight: 400;
       font-style: italic;
       line-height: 1.45;
-      color: var(--muted-text);
       margin-top: 0.875rem;
       margin-bottom: 0;
     }
@@ -495,7 +495,7 @@
     .agitation-lead {
       font-family: var(--serif);
       font-size: clamp(1.375rem, 3vw, 1.875rem);
-      font-weight: 400;
+      font-weight: 500;
       font-style: italic;
       line-height: 1.45;
       color: var(--white);
@@ -536,10 +536,10 @@
 
     .agitation-conclusion {
       font-family: var(--serif);
-      font-size: clamp(1rem, 2vw, 1.25rem);
+      font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+      font-weight: 500;
       font-style: italic;
       color: var(--gold-light);
-      opacity: 0.85;
       margin-top: 2rem;
     }
 
@@ -603,8 +603,8 @@
 
     .pillar-title {
       font-family: var(--serif);
-      font-size: 1.25rem;
-      font-weight: 500;
+      font-size: 1.375rem;
+      font-weight: 600;
       color: var(--white);
       margin-bottom: 0.625rem;
       line-height: 1.25;
@@ -790,19 +790,15 @@
     }
 
     .mentor-avatar {
-      width: 72px;
-      height: 72px;
+      width: 120px;
+      height: 120px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--gold-dark), rgba(201,168,76,0.3));
-      border: 1px solid var(--gold-border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1.25rem;
-      font-family: var(--serif);
-      font-size: 1.5rem;
-      font-weight: 500;
-      color: var(--gold-light);
+      border: 2px solid var(--gold-border);
+      display: block;
+      margin: 0 auto 1.5rem;
+      object-fit: cover;
+      object-position: top center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 4px rgba(201,168,76,0.08);
     }
 
     .mentor-name {
@@ -1135,7 +1131,7 @@
         Menos trabalho.
       </h1>
 
-      <p class="hero-sub">De volta aos tempos dourados da medicina.</p>
+      <p class="hero-sub"><em class="gold-text">De volta aos tempos dourados da medicina.</em></p>
 
       <div style="height:1.5rem"></div>
 
@@ -1244,7 +1240,7 @@
         <p style="font-size:1rem;font-weight:300;color:var(--muted-text);margin-bottom:0.5rem">
           O problema não está em mais ou menos pacientes.
         </p>
-        <p style="font-family:var(--serif);font-size:1.25rem;font-weight:500;color:var(--gold-light);margin-bottom:2rem">
+        <p style="font-family:var(--serif);font-size:clamp(1.375rem,3vw,1.875rem);font-weight:600;color:var(--gold-light);margin-bottom:2rem;letter-spacing:-0.01em">
           Está no modelo de negócio.
         </p>
       </div>
@@ -1440,7 +1436,7 @@
 
       <div class="mentors-grid fade-in">
         <div class="mentor-card">
-          <div class="mentor-avatar" aria-hidden="true">IB</div>
+          <img class="mentor-avatar" src="/img/igor%201.jpg" alt="Igor Brito">
           <p class="mentor-name">Igor Brito</p>
           <span class="mentor-role">Finanças &amp; Precificação para Clínicas Médicas</span>
           <p class="mentor-desc">
@@ -1454,7 +1450,7 @@
         </div>
 
         <div class="mentor-card">
-          <div class="mentor-avatar" aria-hidden="true">JC</div>
+          <img class="mentor-avatar" src="/img/jhonata%201.jpg" alt="Jhonata Cappellaro">
           <p class="mentor-name">Jhonata Cappellaro</p>
           <span class="mentor-role">Marketing &amp; Vendas para Clínicas Médicas</span>
           <p class="mentor-desc">
