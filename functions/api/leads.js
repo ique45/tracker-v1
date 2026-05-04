@@ -57,10 +57,11 @@ export async function onRequestGet(context) {
         s.gclid,
         s.referrer,
         s.landing_url,
-        q.idade,
+        q.instagram,
+        q.especialidade,
         q.faturamento,
-        q.trafego,
-        q.desafio
+        q.foco,
+        q.disposto
       FROM event_log e
       LEFT JOIN sessions s ON e.session_id = s.session_id
       LEFT JOIN lead_qualification q ON e.session_id = q.session_id

@@ -3,135 +3,219 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dashboard de Leads</title>
+<title>Dashboard · Impulse Tracker</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   :root {
-    --bg:     #f7f7f8;
-    --card:   #ffffff;
-    --border: #e4e4e7;
-    --text:   #18181b;
-    --dim:    #52525b;
-    --muted:  #a1a1aa;
-    --green:  #16a34a;
-    --red:    #dc2626;
+    --bg:      #f4f4f6;
+    --card:    #ffffff;
+    --border:  #e2e2e8;
+    --text:    #111118;
+    --dim:     #4b4b5d;
+    --muted:   #9494a8;
+    --accent:  #1e1e2e;
+    --green:   #16a34a;
+    --green-bg:#dcfce7;
+    --red:     #dc2626;
+    --red-bg:  #fee2e2;
+    --yellow:  #b45309;
+    --yellow-bg:#fef9c3;
   }
-  html, body { background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
-  .range-btn { padding: 0.375rem 0.75rem; font-size: 0.8125rem; border: 1px solid var(--border); background: var(--card); border-radius: 8px; cursor: pointer; color: var(--dim); }
-  .range-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
-  .row-hover:hover { background: #fafafa; cursor: pointer; }
-  .fade-in { animation: fadeIn 0.3s ease-out; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.04);
+  }
+
+  .range-btn {
+    padding: .3125rem .75rem;
+    font-size: .8125rem;
+    border: 1px solid var(--border);
+    background: var(--card);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--dim);
+    transition: all .15s;
+  }
+  .range-btn:hover { border-color: #aaa; color: var(--text); }
+  .range-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .row-hover { transition: background .12s; }
+  .row-hover:hover { background: #f8f8fb; cursor: pointer; }
+
+  /* Badges */
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: .125rem .5rem;
+    border-radius: 999px;
+    font-size: .6875rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .badge-green  { background: var(--green-bg);  color: var(--green); }
+  .badge-red    { background: var(--red-bg);    color: var(--red); }
+  .badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
+  .badge-muted  { background: #f0f0f5; color: var(--muted); }
+
+  /* Section titles */
+  .section-title {
+    font-size: .6875rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: .75rem;
+  }
+
+  .fade-in { animation: fadeIn .3s ease-out; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+  /* Table */
+  thead th { position: sticky; top: 0; z-index: 1; background: var(--card); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d0d0dc; border-radius: 999px; }
 </style>
 </head>
 <body>
 
 <div id="app" class="hidden min-h-screen">
 
-  <header class="border-b border-[color:var(--border)] bg-white">
-    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+  <!-- Header -->
+  <header style="background: var(--accent); border-bottom: 1px solid rgba(255,255,255,.06);">
+    <div class="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-lg bg-[color:var(--text)] text-white flex items-center justify-center font-bold text-sm">L</div>
+        <div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#C9A84C,#8B6914);display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" fill="white" opacity=".9"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg>
+        </div>
         <div>
-          <div class="font-semibold">Dashboard de Leads</div>
-          <div class="text-xs text-[color:var(--muted)]">Leads capturados via landing page</div>
+          <div class="font-semibold text-white text-sm">Impulse Tracker</div>
+          <div class="text-xs" style="color:rgba(255,255,255,.4)">Dashboard de Leads</div>
         </div>
       </div>
       <div class="flex items-center gap-2" id="range-picker">
-        <button class="range-btn" data-days="7">7 dias</button>
-        <button class="range-btn active" data-days="30">30 dias</button>
-        <button class="range-btn" data-days="90">90 dias</button>
+        <button class="range-btn" data-days="7" style="background:transparent;color:rgba(255,255,255,.5);border-color:rgba(255,255,255,.12)">7 dias</button>
+        <button class="range-btn active" data-days="30" style="">30 dias</button>
+        <button class="range-btn" data-days="90" style="background:transparent;color:rgba(255,255,255,.5);border-color:rgba(255,255,255,.12)">90 dias</button>
       </div>
     </div>
   </header>
 
-  <main class="max-w-5xl mx-auto px-6 py-6 space-y-6">
+  <main class="max-w-6xl mx-auto px-6 py-7 space-y-6">
 
-    <!-- KPI -->
-    <section class="fade-in">
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="card p-5">
-          <div class="text-xs font-semibold uppercase tracking-wide text-[color:var(--dim)]">Total de Leads</div>
-          <div class="text-3xl font-semibold tracking-tight mt-1 mono" id="kpi-total">—</div>
-          <div class="text-xs text-[color:var(--muted)] mt-1">no período selecionado</div>
-        </div>
-        <div class="card p-5">
-          <div class="text-xs font-semibold uppercase tracking-wide text-[color:var(--dim)]">Com E-mail</div>
-          <div class="text-3xl font-semibold tracking-tight mt-1 mono" id="kpi-email">—</div>
-          <div class="text-xs text-[color:var(--muted)] mt-1">leads com e-mail preenchido</div>
-        </div>
-        <div class="card p-5">
-          <div class="text-xs font-semibold uppercase tracking-wide text-[color:var(--dim)]">Com WhatsApp</div>
-          <div class="text-3xl font-semibold tracking-tight mt-1 mono" id="kpi-phone">—</div>
-          <div class="text-xs text-[color:var(--muted)] mt-1">leads com telefone preenchido</div>
-        </div>
+    <!-- KPIs -->
+    <section class="fade-in grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+      <div class="card p-5">
+        <div class="section-title">Total de Leads</div>
+        <div class="text-4xl font-semibold tracking-tight mono" id="kpi-total">—</div>
+        <div class="text-xs mt-1.5" style="color:var(--muted)">no período selecionado</div>
       </div>
+
+      <div class="card p-5">
+        <div class="section-title">Com WhatsApp</div>
+        <div class="text-4xl font-semibold tracking-tight mono" id="kpi-phone">—</div>
+        <div class="text-xs mt-1.5" style="color:var(--muted)">leads com telefone preenchido</div>
+      </div>
+
+      <div class="card p-5">
+        <div class="section-title">Prontos para Investir</div>
+        <div class="text-4xl font-semibold tracking-tight mono" id="kpi-prontos">—</div>
+        <div class="text-xs mt-1.5" style="color:var(--muted)">responderam "Sim" na qualificação</div>
+      </div>
+
     </section>
 
     <!-- Tabela de leads -->
-    <section class="card p-5 fade-in">
-      <div class="flex items-center justify-between mb-4">
+    <section class="card fade-in">
+      <div class="flex items-center justify-between px-5 pt-5 pb-3">
         <div>
           <div class="font-semibold">Leads recentes</div>
-          <div class="text-xs text-[color:var(--muted)]">Clique em uma linha para ver detalhes do envio ao Meta</div>
+          <div class="text-xs mt-0.5" style="color:var(--muted)">Clique em uma linha para ver detalhes e payload Meta</div>
         </div>
-        <div class="text-xs text-[color:var(--muted)] mono" id="table-count"></div>
+        <div class="text-xs mono" style="color:var(--muted)" id="table-count"></div>
       </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="text-xs uppercase tracking-wider text-[color:var(--dim)] border-b border-[color:var(--border)]">
-            <tr>
-              <th class="text-left py-2 pr-4 font-semibold">Quando</th>
-              <th class="text-left py-2 pr-4 font-semibold">Nome</th>
-              <th class="text-left py-2 pr-4 font-semibold">E-mail</th>
-              <th class="text-left py-2 pr-4 font-semibold">WhatsApp</th>
-              <th class="text-left py-2 pr-4 font-semibold">Idade</th>
-              <th class="text-left py-2 pr-4 font-semibold">Faturamento</th>
-              <th class="text-left py-2 pr-4 font-semibold">Tráfego</th>
-              <th class="text-left py-2 pr-4 font-semibold">Desafio</th>
-              <th class="text-left py-2 pr-4 font-semibold">Origem</th>
-              <th class="text-center py-2 font-semibold">Meta</th>
+
+      <div class="overflow-x-auto px-1 pb-2">
+        <table class="w-full text-sm border-collapse">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <th class="text-left px-4 py-2.5 text-xs font-semibold" style="color:var(--dim)">Quando</th>
+              <th class="text-left px-4 py-2.5 text-xs font-semibold" style="color:var(--dim)">Nome</th>
+              <th class="text-left px-4 py-2.5 text-xs font-semibold" style="color:var(--dim)">WhatsApp</th>
+              <th class="text-left px-4 py-2.5 text-xs font-semibold" style="color:var(--dim)">Instagram</th>
+              <th class="text-left px-4 py-2.5 text-xs font-semibold" style="color:var(--dim)">Especialidade</th>
+              <th class="text-left px-4 py-2.5 text-xs font-semibold" style="color:var(--dim)">Faturamento</th>
+              <th class="text-left px-4 py-2.5 text-xs font-semibold" style="color:var(--dim)">Disposto</th>
+              <th class="text-left px-4 py-2.5 text-xs font-semibold" style="color:var(--dim)">Origem</th>
+              <th class="text-center px-4 py-2.5 text-xs font-semibold" style="color:var(--dim)">Meta</th>
             </tr>
           </thead>
           <tbody id="leads-tbody">
-            <tr><td colspan="10" class="py-8 text-center text-[color:var(--muted)]">Carregando…</td></tr>
+            <tr><td colspan="9" class="py-10 text-center" style="color:var(--muted)">Carregando…</td></tr>
           </tbody>
         </table>
       </div>
     </section>
 
-    <footer class="pt-2 pb-10 text-xs text-[color:var(--muted)] text-center">
-      Tracker V1 &middot; hospedado no Cloudflare Pages
+    <footer class="pt-2 pb-10 text-xs text-center" style="color:var(--muted)">
+      Impulse Tracker &middot; Cloudflare Pages + D1
     </footer>
   </main>
 </div>
 
 <!-- Auth gate -->
-<div id="auth-gate" class="min-h-screen flex items-center justify-center hidden">
-  <div class="card p-6 max-w-sm w-full">
-    <div class="font-semibold mb-2">Acesso ao dashboard</div>
-    <div class="text-sm text-[color:var(--dim)] mb-4">
-      Cole a <code class="mono bg-[color:var(--bg)] px-1 rounded">DASH_KEY</code> configurada no Cloudflare.
+<div id="auth-gate" class="min-h-screen flex items-center justify-center hidden" style="background:var(--bg)">
+  <div class="card p-7 max-w-sm w-full">
+    <div class="flex items-center gap-3 mb-5">
+      <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#C9A84C,#8B6914);display:flex;align-items:center;justify-content:center;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" fill="white" opacity=".9"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg>
+      </div>
+      <div>
+        <div class="font-semibold text-sm">Impulse Tracker</div>
+        <div class="text-xs" style="color:var(--muted)">Dashboard de Leads</div>
+      </div>
     </div>
-    <input id="auth-input" type="password" placeholder="DASH_KEY" class="w-full border border-[color:var(--border)] rounded-lg px-3 py-2 text-sm mb-3 mono">
-    <button id="auth-submit" class="w-full bg-[color:var(--text)] text-white rounded-lg py-2 text-sm font-semibold">Entrar</button>
-    <div id="auth-error" class="text-xs text-[color:var(--red)] mt-2 hidden">Chave inválida.</div>
+    <div class="text-sm mb-4" style="color:var(--dim)">
+      Cole a <code class="mono px-1 py-0.5 rounded text-xs" style="background:var(--bg)">DASH_KEY</code> configurada no Cloudflare.
+    </div>
+    <input id="auth-input" type="password" placeholder="DASH_KEY" autocomplete="current-password"
+      class="w-full px-3 py-2.5 text-sm mono rounded-lg mb-3 outline-none transition"
+      style="border: 1px solid var(--border); background: var(--bg);"
+      onfocus="this.style.borderColor='#1e1e2e'" onblur="this.style.borderColor='var(--border)'">
+    <button id="auth-submit"
+      class="w-full py-2.5 text-sm font-semibold rounded-lg text-white transition"
+      style="background:var(--accent);">
+      Entrar
+    </button>
+    <div id="auth-error" class="text-xs mt-2 hidden" style="color:var(--red)">Chave inválida. Tente novamente.</div>
   </div>
 </div>
 
 <!-- Modal de detalhes -->
-<div id="details-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50 p-4" role="dialog" aria-modal="true">
-  <div class="card w-full max-w-2xl max-h-[85vh] overflow-y-auto">
-    <div class="flex items-center justify-between px-5 py-3 border-b border-[color:var(--border)] sticky top-0 bg-white">
+<div id="details-modal" class="fixed inset-0 hidden items-center justify-center z-50 p-4" style="background:rgba(0,0,0,.45);" role="dialog" aria-modal="true">
+  <div class="card w-full max-w-2xl max-h-[88vh] overflow-y-auto">
+    <div class="flex items-center justify-between px-6 py-4 sticky top-0 bg-white" style="border-bottom:1px solid var(--border);">
       <div>
         <div id="modal-title" class="font-semibold">Detalhes do lead</div>
-        <div id="modal-subtitle" class="text-xs text-[color:var(--muted)] mt-0.5"></div>
+        <div id="modal-subtitle" class="text-xs mt-0.5" style="color:var(--muted)"></div>
       </div>
-      <button id="modal-close" class="text-[color:var(--dim)] hover:text-[color:var(--text)] text-2xl leading-none px-2" aria-label="Fechar">&times;</button>
+      <button id="modal-close" class="text-2xl leading-none px-2 transition" style="color:var(--muted);" aria-label="Fechar">&times;</button>
     </div>
-    <div id="modal-body" class="p-5 space-y-5"></div>
+    <div id="modal-body" class="p-6 space-y-6"></div>
   </div>
 </div>
 
@@ -188,98 +272,142 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  function dispondoBadge(val) {
+    if (!val) return '<span style="color:var(--muted)">—</span>';
+    if (val === 'Sim') return '<span class="badge badge-green">✓ Sim</span>';
+    return '<span class="badge badge-muted">Não</span>';
+  }
+
+  function metaBadge(ok) {
+    return ok
+      ? '<span class="badge badge-green">✓ ok</span>'
+      : '<span class="badge badge-red">✕ falhou</span>';
+  }
+
+  function originBadge(src) {
+    if (!src) return '<span style="color:var(--muted)">direto</span>';
+    const colors = {
+      facebook: 'badge-yellow', instagram: 'badge-yellow',
+      google: 'badge-muted', organic: 'badge-muted',
+    };
+    const key = Object.keys(colors).find(k => src.toLowerCase().includes(k));
+    return `<span class="badge ${key ? colors[key] : 'badge-muted'}">${escapeHtml(src)}</span>`;
+  }
+
   // Load leads
   async function loadLeads(days) {
     currentDays = days;
+
+    // Update range buttons style
+    qsa('#range-picker .range-btn').forEach(b => {
+      const active = b.getAttribute('data-days') == days;
+      b.style.background = active ? '#fff' : 'transparent';
+      b.style.color       = active ? 'var(--accent)' : 'rgba(255,255,255,.5)';
+      b.style.borderColor = active ? '#fff' : 'rgba(255,255,255,.12)';
+      b.style.fontWeight  = active ? '600' : '400';
+    });
+
     const tbody = qs('#leads-tbody');
-    tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-[color:var(--muted)]">Carregando…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="py-10 text-center" style="color:var(--muted)">Carregando…</td></tr>';
 
     try {
       const data = await fetchJson(`/api/leads?days=${days}&limit=200`);
       leadsData = data.leads || [];
 
-      const total  = leadsData.length;
-      const wEmail = leadsData.filter(l => l.raw_email).length;
-      const wPhone = leadsData.filter(l => l.raw_phone).length;
+      const total   = leadsData.length;
+      const wPhone  = leadsData.filter(l => l.raw_phone).length;
+      const prontos = leadsData.filter(l => l.disposto === 'Sim').length;
 
-      qs('#kpi-total').textContent = total;
-      qs('#kpi-email').textContent = wEmail;
-      qs('#kpi-phone').textContent = wPhone;
+      qs('#kpi-total').textContent   = total;
+      qs('#kpi-phone').textContent   = wPhone;
+      qs('#kpi-prontos').textContent = prontos;
       qs('#table-count').textContent = total > 0 ? `${total} resultado${total !== 1 ? 's' : ''}` : '';
 
       if (total === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="py-8 text-center text-[color:var(--muted)]">Nenhum lead neste período.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="py-10 text-center" style="color:var(--muted)">Nenhum lead neste período.</td></tr>';
         return;
       }
 
       tbody.innerHTML = leadsData.map((l, i) => `
-        <tr class="row-hover border-b border-[color:var(--border)]" data-idx="${i}">
-          <td class="py-2.5 pr-4 text-[color:var(--dim)] text-xs mono whitespace-nowrap">${fmtDate(l.timestamp)}</td>
-          <td class="py-2.5 pr-4 whitespace-nowrap">${escapeHtml(l.raw_name || '—')}</td>
-          <td class="py-2.5 pr-4 mono text-xs">${escapeHtml(l.raw_email || '—')}</td>
-          <td class="py-2.5 pr-4 mono text-xs">${escapeHtml(l.raw_phone || '—')}</td>
-          <td class="py-2.5 pr-4 text-xs text-[color:var(--dim)]">${escapeHtml(l.idade || '—')}</td>
-          <td class="py-2.5 pr-4 text-xs text-[color:var(--dim)] whitespace-nowrap">${escapeHtml(l.faturamento || '—')}</td>
-          <td class="py-2.5 pr-4 text-xs text-[color:var(--dim)] whitespace-nowrap">${escapeHtml(l.trafego || '—')}</td>
-          <td class="py-2.5 pr-4 text-xs text-[color:var(--dim)]">${escapeHtml(l.desafio || '—')}</td>
-          <td class="py-2.5 pr-4 text-xs text-[color:var(--dim)]">${escapeHtml(l.utm_source || '(direto)')}</td>
-          <td class="py-2.5 text-center text-sm">${l.meta_response_ok ? '<span style="color:var(--green)">✓</span>' : '<span style="color:var(--red)">✕</span>'}</td>
+        <tr class="row-hover" data-idx="${i}" style="border-bottom: 1px solid var(--border);">
+          <td class="px-4 py-3 text-xs mono whitespace-nowrap" style="color:var(--dim)">${fmtDate(l.timestamp)}</td>
+          <td class="px-4 py-3 font-medium whitespace-nowrap">${escapeHtml(l.raw_name || '—')}</td>
+          <td class="px-4 py-3 mono text-xs whitespace-nowrap" style="color:var(--dim)">${escapeHtml(l.raw_phone || '—')}</td>
+          <td class="px-4 py-3 text-xs" style="color:var(--dim)">${l.instagram ? '<span style="color:#6366f1">@</span>' + escapeHtml(l.instagram) : '<span style="color:var(--muted)">—</span>'}</td>
+          <td class="px-4 py-3 text-xs whitespace-nowrap" style="color:var(--dim)">${escapeHtml(l.especialidade || '—')}</td>
+          <td class="px-4 py-3 text-xs whitespace-nowrap" style="color:var(--dim)">${escapeHtml(l.faturamento || '—')}</td>
+          <td class="px-4 py-3">${dispondoBadge(l.disposto)}</td>
+          <td class="px-4 py-3">${originBadge(l.utm_source)}</td>
+          <td class="px-4 py-3 text-center">${metaBadge(l.meta_response_ok)}</td>
         </tr>
       `).join('');
 
       qsa('#leads-tbody tr[data-idx]').forEach(row => {
-        row.addEventListener('click', () => {
-          openDetails(leadsData[parseInt(row.getAttribute('data-idx'), 10)]);
-        });
+        row.addEventListener('click', () => openDetails(leadsData[parseInt(row.getAttribute('data-idx'), 10)]));
       });
 
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-[color:var(--red)]">Erro ao carregar: ${escapeHtml(err.message)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" class="py-10 text-center" style="color:var(--red)">Erro: ${escapeHtml(err.message)}</td></tr>`;
     }
   }
 
   // Modal
   function openDetails(lead) {
-    qs('#modal-title').textContent = 'Detalhes do lead';
-    qs('#modal-subtitle').textContent = `${fmtDate(lead.timestamp)} · ${lead.raw_email || '(sem e-mail)'}`;
+    qs('#modal-title').textContent  = lead.raw_name || 'Lead';
+    qs('#modal-subtitle').textContent = fmtDate(lead.timestamp) + (lead.raw_phone ? ' · ' + lead.raw_phone : '');
 
-    const metaBadge = lead.meta_response_ok
-      ? `<span style="color:var(--green)">✓ aceito${lead.meta_status_code ? ` (HTTP ${lead.meta_status_code})` : ''}</span>`
-      : `<span style="color:var(--red)">✕ falhou${lead.meta_status_code ? ` (HTTP ${lead.meta_status_code})` : ''}</span>`;
+    const hasQual = lead.instagram || lead.especialidade || lead.faturamento || lead.foco || lead.disposto;
+
+    const metaBadgeHtml = lead.meta_response_ok
+      ? `<span class="badge badge-green">✓ aceito${lead.meta_status_code ? ` · HTTP ${lead.meta_status_code}` : ''}</span>`
+      : `<span class="badge badge-red">✕ falhou${lead.meta_status_code ? ` · HTTP ${lead.meta_status_code}` : ''}</span>`;
 
     qs('#modal-body').innerHTML = `
-      <div class="grid grid-cols-2 gap-4 text-sm">
-        <div><div class="text-xs text-[color:var(--muted)] mb-0.5">Nome</div><div>${escapeHtml(lead.raw_name || '—')}</div></div>
-        <div><div class="text-xs text-[color:var(--muted)] mb-0.5">E-mail</div><div class="mono">${escapeHtml(lead.raw_email || '—')}</div></div>
-        <div><div class="text-xs text-[color:var(--muted)] mb-0.5">WhatsApp</div><div class="mono">${escapeHtml(lead.raw_phone || '—')}</div></div>
-        <div><div class="text-xs text-[color:var(--muted)] mb-0.5">Origem</div><div>${escapeHtml(lead.utm_source || '(direto)')}</div></div>
-        <div><div class="text-xs text-[color:var(--muted)] mb-0.5">Campanha</div><div>${escapeHtml(lead.utm_campaign || '—')}</div></div>
-        <div><div class="text-xs text-[color:var(--muted)] mb-0.5">Meio</div><div>${escapeHtml(lead.utm_medium || '—')}</div></div>
-      </div>
-      ${(lead.idade || lead.faturamento || lead.trafego || lead.desafio) ? `
+
+      <!-- Dados do lead -->
       <div>
-        <div class="text-xs font-semibold uppercase tracking-wider text-[color:var(--dim)] mb-3">Qualificação</div>
-        <div class="grid grid-cols-2 gap-4 text-sm">
-          <div><div class="text-xs text-[color:var(--muted)] mb-0.5">Idade</div><div>${escapeHtml(lead.idade || '—')}</div></div>
-          <div><div class="text-xs text-[color:var(--muted)] mb-0.5">Faturamento mensal</div><div>${escapeHtml(lead.faturamento || '—')}</div></div>
-          <div><div class="text-xs text-[color:var(--muted)] mb-0.5">Tráfego pago</div><div>${escapeHtml(lead.trafego || '—')}</div></div>
-          <div><div class="text-xs text-[color:var(--muted)] mb-0.5">Maior desafio</div><div>${escapeHtml(lead.desafio || '—')}</div></div>
+        <div class="section-title">Dados do lead</div>
+        <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+          <div><div class="text-xs mb-0.5" style="color:var(--muted)">Nome</div><div class="font-medium">${escapeHtml(lead.raw_name || '—')}</div></div>
+          <div><div class="text-xs mb-0.5" style="color:var(--muted)">WhatsApp</div><div class="mono">${escapeHtml(lead.raw_phone || '—')}</div></div>
+          <div><div class="text-xs mb-0.5" style="color:var(--muted)">Origem</div><div>${originBadge(lead.utm_source)}</div></div>
+          <div><div class="text-xs mb-0.5" style="color:var(--muted)">Campanha</div><div>${escapeHtml(lead.utm_campaign || '—')}</div></div>
+          <div><div class="text-xs mb-0.5" style="color:var(--muted)">Meio</div><div>${escapeHtml(lead.utm_medium || '—')}</div></div>
+          <div><div class="text-xs mb-0.5" style="color:var(--muted)">Dispositivo</div><div>${escapeHtml([lead.browser, lead.os].filter(Boolean).join(' · ') || '—')}</div></div>
+        </div>
+      </div>
+
+      ${hasQual ? `
+      <!-- Qualificação -->
+      <div style="border-top: 1px solid var(--border); padding-top: 1.25rem;">
+        <div class="section-title">Qualificação</div>
+        <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+          <div><div class="text-xs mb-0.5" style="color:var(--muted)">Instagram</div><div>${lead.instagram ? '<span style="color:#6366f1">@</span>' + escapeHtml(lead.instagram) : '—'}</div></div>
+          <div><div class="text-xs mb-0.5" style="color:var(--muted)">Especialidade</div><div>${escapeHtml(lead.especialidade || '—')}</div></div>
+          <div><div class="text-xs mb-0.5" style="color:var(--muted)">Faturamento mensal</div><div>${escapeHtml(lead.faturamento || '—')}</div></div>
+          <div><div class="text-xs mb-0.5" style="color:var(--muted)">Principal foco</div><div>${escapeHtml(lead.foco || '—')}</div></div>
+          <div class="col-span-2"><div class="text-xs mb-0.5" style="color:var(--muted)">Disposto a investir?</div><div>${dispondoBadge(lead.disposto)}</div></div>
         </div>
       </div>` : ''}
-      <div>
-        <div class="flex items-center justify-between mb-2">
-          <div class="font-semibold text-sm">Meta CAPI</div>
-          <div class="text-xs mono">${metaBadge}</div>
+
+      <!-- Meta CAPI -->
+      <div style="border-top: 1px solid var(--border); padding-top: 1.25rem;">
+        <div class="flex items-center justify-between mb-3">
+          <div class="section-title mb-0">Meta CAPI</div>
+          ${metaBadgeHtml}
         </div>
-        <div class="mb-2">
-          <div class="text-xs uppercase tracking-wider text-[color:var(--dim)] mb-1">Payload enviado</div>
-          <pre class="mono text-xs bg-[color:var(--bg)] border border-[color:var(--border)] rounded-lg p-3 overflow-x-auto whitespace-pre-wrap">${escapeHtml(formatJson(lead.meta_payload_sent) || '—')}</pre>
-        </div>
-        <div>
-          <div class="text-xs uppercase tracking-wider text-[color:var(--dim)] mb-1">Resposta</div>
-          <pre class="mono text-xs bg-[color:var(--bg)] border border-[color:var(--border)] rounded-lg p-3 overflow-x-auto whitespace-pre-wrap">${escapeHtml(formatJson(lead.meta_response_body) || '—')}</pre>
+        <div class="space-y-3">
+          <div>
+            <div class="text-xs mb-1.5 font-medium" style="color:var(--dim)">Payload enviado</div>
+            <pre class="mono text-xs p-3 rounded-lg overflow-x-auto whitespace-pre-wrap" style="background:var(--bg);border:1px solid var(--border)">${escapeHtml(formatJson(lead.meta_payload_sent) || '—')}</pre>
+          </div>
+          <div>
+            <div class="text-xs mb-1.5 font-medium" style="color:var(--dim)">Resposta</div>
+            <pre class="mono text-xs p-3 rounded-lg overflow-x-auto whitespace-pre-wrap" style="background:var(--bg);border:1px solid var(--border)">${escapeHtml(formatJson(lead.meta_response_body) || '—')}</pre>
+          </div>
         </div>
       </div>
+
     `;
 
     const modal = qs('#details-modal');
@@ -303,8 +431,6 @@
   // Range picker
   qsa('#range-picker .range-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      qsa('#range-picker .range-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
       loadLeads(parseInt(btn.getAttribute('data-days'), 10));
     });
   });
