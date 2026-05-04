@@ -125,6 +125,34 @@
       color: var(--white); margin-bottom: 1.25rem;
     }
 
+    /* Text input (Instagram step) */
+    .text-input-wrap {
+      display: flex; align-items: center;
+      border: 1px solid rgba(201,168,76,.28);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.02);
+      transition: border-color var(--t), box-shadow var(--t);
+      overflow: hidden;
+    }
+    .text-input-wrap:focus-within {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(201,168,76,.1);
+    }
+    .text-input-prefix {
+      padding: .875rem .75rem .875rem 1.125rem;
+      font-size: .9375rem; font-weight: 400;
+      color: var(--gold); flex-shrink: 0;
+      user-select: none;
+    }
+    .text-input-wrap input[type="text"] {
+      flex: 1; appearance: none; border: none; outline: none;
+      background: transparent;
+      font-family: var(--sans); font-size: .9375rem; font-weight: 300;
+      color: var(--cream); padding: .875rem .875rem .875rem 0;
+      caret-color: var(--gold);
+    }
+    .text-input-wrap input[type="text"]::placeholder { color: rgba(248,244,236,.25); }
+
     /* Options */
     .options { display: flex; flex-direction: column; gap: .5rem; }
 
@@ -244,37 +272,35 @@
     <p class="sub">Suas respostas nos ajudam a entender seu momento e personalizar o contato.</p>
 
     <div class="progress" id="progress-wrap">
-      <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:25%"></div></div>
-      <div class="progress-label" id="progress-label">Pergunta 1 de 4</div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:20%"></div></div>
+      <div class="progress-label" id="progress-label">Pergunta 1 de 5</div>
     </div>
 
     <!-- Formulário de qualificação -->
     <form id="qual-form" style="width:100%">
 
-      <!-- Passo 1: Idade -->
+      <!-- Passo 1: Instagram -->
       <div class="step active" data-step="1">
-        <div class="step-question">Qual é a sua faixa de idade?</div>
-        <div class="options" id="opts-idade">
-          <label class="option"><input type="radio" name="idade" value="18-24"><span class="option-dot"></span><span class="option-label">18 – 24 anos</span></label>
-          <label class="option"><input type="radio" name="idade" value="25-34"><span class="option-dot"></span><span class="option-label">25 – 34 anos</span></label>
-          <label class="option"><input type="radio" name="idade" value="35-44"><span class="option-dot"></span><span class="option-label">35 – 44 anos</span></label>
-          <label class="option"><input type="radio" name="idade" value="45-54"><span class="option-dot"></span><span class="option-label">45 – 54 anos</span></label>
-          <label class="option"><input type="radio" name="idade" value="55+"><span class="option-dot"></span><span class="option-label">55 anos ou mais</span></label>
+        <div class="step-question">Qual é o @ do Instagram da sua clínica?</div>
+        <div class="text-input-wrap">
+          <span class="text-input-prefix">@</span>
+          <input type="text" id="instagram-input" name="instagram" placeholder="suaclinica" autocomplete="off" autocapitalize="none" spellcheck="false">
         </div>
         <div class="nav">
           <button type="button" class="btn-next" id="btn-1" disabled>Próximo</button>
         </div>
       </div>
 
-      <!-- Passo 2: Faturamento -->
+      <!-- Passo 2: Especialidade -->
       <div class="step" data-step="2">
-        <div class="step-question">Qual é o seu faturamento mensal médio?</div>
-        <div class="options" id="opts-fat">
-          <label class="option"><input type="radio" name="faturamento" value="Abaixo de R$5k"><span class="option-dot"></span><span class="option-label">Abaixo de R$ 5.000</span></label>
-          <label class="option"><input type="radio" name="faturamento" value="R$5k–R$20k"><span class="option-dot"></span><span class="option-label">R$ 5.000 – R$ 20.000</span></label>
-          <label class="option"><input type="radio" name="faturamento" value="R$20k–R$50k"><span class="option-dot"></span><span class="option-label">R$ 20.000 – R$ 50.000</span></label>
-          <label class="option"><input type="radio" name="faturamento" value="R$50k–R$100k"><span class="option-dot"></span><span class="option-label">R$ 50.000 – R$ 100.000</span></label>
-          <label class="option"><input type="radio" name="faturamento" value="Acima de R$100k"><span class="option-dot"></span><span class="option-label">Acima de R$ 100.000</span></label>
+        <div class="step-question">Qual é a especialidade médica da sua clínica?</div>
+        <div class="options" id="opts-esp">
+          <label class="option"><input type="radio" name="especialidade" value="Cirurgião Plástico"><span class="option-dot"></span><span class="option-label">Cirurgião Plástico</span></label>
+          <label class="option"><input type="radio" name="especialidade" value="Endocrinologista"><span class="option-dot"></span><span class="option-label">Endocrinologista</span></label>
+          <label class="option"><input type="radio" name="especialidade" value="Nutrólogo"><span class="option-dot"></span><span class="option-label">Nutrólogo</span></label>
+          <label class="option"><input type="radio" name="especialidade" value="Ginecologista"><span class="option-dot"></span><span class="option-label">Ginecologista</span></label>
+          <label class="option"><input type="radio" name="especialidade" value="Dermatologista"><span class="option-dot"></span><span class="option-label">Dermatologista</span></label>
+          <label class="option"><input type="radio" name="especialidade" value="Outra"><span class="option-dot"></span><span class="option-label">Outra especialidade</span></label>
         </div>
         <div class="nav">
           <button type="button" class="btn-back" data-to="1">Voltar</button>
@@ -282,13 +308,16 @@
         </div>
       </div>
 
-      <!-- Passo 3: Tráfego pago -->
+      <!-- Passo 3: Faturamento -->
       <div class="step" data-step="3">
-        <div class="step-question">Você já investe em tráfego pago?</div>
-        <div class="options" id="opts-traf">
-          <label class="option"><input type="radio" name="trafego" value="Sim, regularmente"><span class="option-dot"></span><span class="option-label">Sim, invisto regularmente</span></label>
-          <label class="option"><input type="radio" name="trafego" value="Sim, já tentei"><span class="option-dot"></span><span class="option-label">Já tentei, mas parei</span></label>
-          <label class="option"><input type="radio" name="trafego" value="Não, nunca"><span class="option-dot"></span><span class="option-label">Nunca investi</span></label>
+        <div class="step-question">Qual é o seu faturamento mensal médio?</div>
+        <div class="options" id="opts-fat">
+          <label class="option"><input type="radio" name="faturamento" value="Abaixo de 50k"><span class="option-dot"></span><span class="option-label">Abaixo de R$ 50k</span></label>
+          <label class="option"><input type="radio" name="faturamento" value="Entre 50k e 75k"><span class="option-dot"></span><span class="option-label">Entre R$ 50k e R$ 75k</span></label>
+          <label class="option"><input type="radio" name="faturamento" value="Entre 75k e 100k"><span class="option-dot"></span><span class="option-label">Entre R$ 75k e R$ 100k</span></label>
+          <label class="option"><input type="radio" name="faturamento" value="Entre 100k e 150k"><span class="option-dot"></span><span class="option-label">Entre R$ 100k e R$ 150k</span></label>
+          <label class="option"><input type="radio" name="faturamento" value="Entre 150k e 200k"><span class="option-dot"></span><span class="option-label">Entre R$ 150k e R$ 200k</span></label>
+          <label class="option"><input type="radio" name="faturamento" value="Acima de 200k"><span class="option-dot"></span><span class="option-label">Acima de R$ 200k</span></label>
         </div>
         <div class="nav">
           <button type="button" class="btn-back" data-to="2">Voltar</button>
@@ -296,19 +325,32 @@
         </div>
       </div>
 
-      <!-- Passo 4: Desafio -->
+      <!-- Passo 4: Principal foco -->
       <div class="step" data-step="4">
-        <div class="step-question">Qual é o seu maior desafio hoje?</div>
-        <div class="options" id="opts-des">
-          <label class="option"><input type="radio" name="desafio" value="Gerar leads qualificados"><span class="option-dot"></span><span class="option-label">Gerar leads qualificados</span></label>
-          <label class="option"><input type="radio" name="desafio" value="Converter leads em clientes"><span class="option-dot"></span><span class="option-label">Converter leads em clientes</span></label>
-          <label class="option"><input type="radio" name="desafio" value="Escalar o faturamento"><span class="option-dot"></span><span class="option-label">Escalar o faturamento</span></label>
-          <label class="option"><input type="radio" name="desafio" value="Reduzir custo por aquisição"><span class="option-dot"></span><span class="option-label">Reduzir o custo por aquisição</span></label>
-          <label class="option"><input type="radio" name="desafio" value="Outro"><span class="option-dot"></span><span class="option-label">Outro</span></label>
+        <div class="step-question">Qual é o seu principal foco agora?</div>
+        <div class="options" id="opts-foco">
+          <label class="option"><input type="radio" name="foco" value="Aumentar faturamento"><span class="option-dot"></span><span class="option-label">Aumentar faturamento</span></label>
+          <label class="option"><input type="radio" name="foco" value="Trabalhar menos"><span class="option-dot"></span><span class="option-label">Trabalhar menos</span></label>
+          <label class="option"><input type="radio" name="foco" value="Aumentar a margem de lucro"><span class="option-dot"></span><span class="option-label">Aumentar a margem de lucro</span></label>
+          <label class="option"><input type="radio" name="foco" value="Cobrar mais caro"><span class="option-dot"></span><span class="option-label">Cobrar mais caro</span></label>
+          <label class="option"><input type="radio" name="foco" value="Todas as alternativas"><span class="option-dot"></span><span class="option-label">Todas as alternativas</span></label>
         </div>
         <div class="nav">
           <button type="button" class="btn-back" data-to="3">Voltar</button>
-          <button type="button" class="btn-next" id="btn-4" disabled>Concluir</button>
+          <button type="button" class="btn-next" id="btn-4" disabled>Próximo</button>
+        </div>
+      </div>
+
+      <!-- Passo 5: Disposição para investir -->
+      <div class="step" data-step="5">
+        <div class="step-question">Você está disposto a investir para implementar um processo validado, para no mínimo alcançar 50% de margem de lucro, aumentar até 30% seu faturamento e trabalhar menos?</div>
+        <div class="options" id="opts-disp">
+          <label class="option"><input type="radio" name="disposto" value="Sim"><span class="option-dot"></span><span class="option-label">Sim, estou disposto</span></label>
+          <label class="option"><input type="radio" name="disposto" value="Não"><span class="option-dot"></span><span class="option-label">Não, acredito que ainda não seja meu momento de crescer</span></label>
+        </div>
+        <div class="nav">
+          <button type="button" class="btn-back" data-to="4">Voltar</button>
+          <button type="button" class="btn-next" id="btn-5" disabled>Concluir</button>
         </div>
       </div>
 
@@ -330,7 +372,7 @@
 
 <script>
 (function () {
-  const TOTAL = 4;
+  const TOTAL = 5;
   let currentStep = 1;
 
   const progressFill  = document.getElementById('progress-fill');
@@ -339,8 +381,7 @@
   const successEl     = document.getElementById('success');
   const progressWrap  = document.getElementById('progress-wrap');
 
-  // Map step → field name
-  const FIELD = { 1: 'idade', 2: 'faturamento', 3: 'trafego', 4: 'desafio' };
+  const FIELD = { 1: 'instagram', 2: 'especialidade', 3: 'faturamento', 4: 'foco', 5: 'disposto' };
 
   function getStep(n) { return document.querySelector(`.step[data-step="${n}"]`); }
   function getCookieVal(name) {
@@ -361,11 +402,18 @@
     updateProgress(n);
   }
 
-  // Mark options as selected on click + enable next button
+  // Step 1: enable next when Instagram field has text
+  const instagramInput = document.getElementById('instagram-input');
+  const btn1 = document.getElementById('btn-1');
+  instagramInput.addEventListener('input', () => {
+    btn1.disabled = instagramInput.value.trim().length === 0;
+  });
+
+  // Steps 2-5: mark options as selected on click + enable next button
   document.querySelectorAll('.options').forEach(group => {
-    const stepEl   = group.closest('.step');
-    const stepNum  = parseInt(stepEl.getAttribute('data-step'), 10);
-    const nextBtn  = document.getElementById(`btn-${stepNum}`);
+    const stepEl  = group.closest('.step');
+    const stepNum = parseInt(stepEl.getAttribute('data-step'), 10);
+    const nextBtn = document.getElementById(`btn-${stepNum}`);
 
     group.querySelectorAll('.option').forEach(opt => {
       opt.addEventListener('click', () => {
@@ -382,23 +430,28 @@
     btn.addEventListener('click', () => showStep(parseInt(btn.getAttribute('data-to'), 10)));
   });
 
-  // Next / submit buttons
-  [1, 2, 3].forEach(n => {
+  // Next buttons (steps 1–4 advance to next step)
+  [1, 2, 3, 4].forEach(n => {
     document.getElementById(`btn-${n}`).addEventListener('click', () => showStep(n + 1));
   });
 
-  document.getElementById('btn-4').addEventListener('click', async () => {
-    const btn = document.getElementById('btn-4');
+  // Step 5: submit
+  document.getElementById('btn-5').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-5');
     btn.disabled = true;
     btn.textContent = 'Enviando…';
 
     const data = {};
-    for (let s = 1; s <= TOTAL; s++) {
+
+    // Step 1 is a text input
+    data.instagram = instagramInput.value.trim().replace(/^@+/, '');
+
+    // Steps 2–5 are radio groups
+    for (let s = 2; s <= TOTAL; s++) {
       const checked = form.querySelector(`input[name="${FIELD[s]}"]:checked`);
       if (checked) data[FIELD[s]] = checked.value;
     }
 
-    // Pass session_id as fallback in body (server reads cookie first)
     data.session_id = getCookieVal('_krob_sid');
 
     try {
@@ -409,7 +462,6 @@
       });
     } catch (_) {}
 
-    // Show success regardless of network result
     form.style.display = 'none';
     progressWrap.style.display = 'none';
     successEl.classList.add('show');
