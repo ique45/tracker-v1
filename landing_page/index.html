@@ -546,10 +546,12 @@
 
     .agitation-conclusion {
       font-family: var(--serif);
-      font-size: clamp(1.875rem, 4.5vw, 3rem);
-      font-weight: 600;
-      line-height: 1.1;
-      margin-top: 3rem;
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      font-weight: 400;
+      font-style: italic;
+      color: var(--muted-text);
+      line-height: 1.55;
+      margin-top: 2.5rem;
     }
 
     /* ─── ═══════════════════════════════ ─── */
@@ -1267,8 +1269,8 @@
       </ul>
 
       <p class="agitation-conclusion fade-in">
-        <span style="display:block;font-size:0.55em;font-weight:400;font-style:italic;color:var(--muted-text);margin-bottom:0.5rem">Esse não é um problema de competência.</span>
-        <span class="gold-text">É um problema de modelo de negócio.</span>
+        Esse não é um problema de competência.<br>
+        É um problema de <em class="gold-text" style="font-size:clamp(1.75rem,4vw,2.75rem);font-weight:700;font-style:normal;display:inline-block;line-height:1.1;margin-top:0.2rem">Modelo de negócio.</em>
       </p>
 
     </div>
@@ -1423,10 +1425,11 @@
         </div>
       </div>
 
-      <div class="fade-in" style="text-align:center;margin-top:3rem;padding:2rem 1.5rem;border-top:1px solid var(--gold-border);">
-        <p style="font-family:var(--serif);font-size:clamp(1.125rem,2.5vw,1.5rem);font-weight:400;font-style:italic;color:var(--cream);line-height:1.5;margin:0">
-          Juntos já atenderam mais de <strong style="-webkit-text-fill-color:transparent;background:linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark));-webkit-background-clip:text;background-clip:text;font-style:normal;font-weight:700">5.000 clínicas</strong> e possuem uma base de <strong style="-webkit-text-fill-color:transparent;background:linear-gradient(135deg,var(--gold-light),var(--gold),var(--gold-dark));-webkit-background-clip:text;background-clip:text;font-style:normal;font-weight:700">300 clientes ativos.</strong>
-        </p>
+      <div class="fade-in" style="text-align:center;margin-top:2.5rem">
+        <div class="mentor-stat" style="display:inline-flex;max-width:480px;text-align:left;font-size:0.875rem">
+          <span style="color:var(--gold-light);font-size:1rem;flex-shrink:0">✦</span>
+          Juntos já atenderam mais de 5.000 clínicas e possuem uma base de 300 clientes ativos.
+        </div>
       </div>
 
     </div>
