@@ -279,11 +279,18 @@
     }
     .hero-wordmark {
       font-family: var(--serif);
-      font-size: 1.0625rem;
-      font-weight: 300;
-      letter-spacing: 0.35em;
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      font-weight: 600;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: var(--gold);
+      background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 45%, var(--gold-dark) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+      display: block;
+      text-shadow: none;
+      filter: drop-shadow(0 0 24px rgba(201,168,76,0.35));
     }
 
     .hero-eyebrow {
